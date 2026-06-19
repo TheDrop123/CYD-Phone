@@ -3,6 +3,7 @@ Schools usually ban phones because they can be used to record people, take photo
 Since phones have cameras and microphones, students could record teachers or classmates without permission, which can cause privacy and legal issues especially in Germany where this project is based in in particular  §201a StGB
 
 <img width="1632" height="517" alt="image" src="https://github.com/user-attachments/assets/f54ee0f5-1331-4ea2-9068-9b5f5143d589" />
+<img width="1877" height="763" alt="image" src="https://github.com/user-attachments/assets/1b3342ba-ec3f-4f61-8a49-e3601c508b72" />
 
 Schools enforce bans mainly through rules:
 
