@@ -1,0 +1,88 @@
+Die Apps
+Calc (Taschenrechner)
+
+Ein Standard-Taschenrechner fuer deine taeglichen Rechnungen.  
+
+    Bietet Grundrechenarten wie Plus, Minus, Mal und Geteilt.  
+
+    Spezialfunktionen: x2 (Quadrieren), Wr. (Wurzel ziehen), 1/x (Kehrwert) und ^ (Potenz).  
+
+    Mit der Taste C loescht du deine aktuelle Eingabe.  
+
+Draw (Zeichnen)
+
+Deine App fuer schnelle kreative Skizzen.  
+
+    Unten links in der Leiste findest du 8 verschiedene Farben.  
+
+    RAD schaltet den Radiergummi ein oder aus.  
+
+    NEU loescht das gesamte Bild sofort.  
+
+    Mit SZ+ und SZ- veraenderst du die Stiftdicke.  
+
+    RAUS oder ZURUECK beendet die Zeichen-App und bringt dich ins Menue.  
+
+Notes (Notizen)
+
+Hier kannst du Textnotizen erstellen und dauerhaft auf der SD-Karte speichern.  
+
+    Tippe auf das + Symbol, um eine neue Notiz zu erstellen.  
+
+    Waehle eine Notiz aus der Liste, um sie zu lesen oder den Text zu bearbeiten.  
+
+    Tippe auf das rote X neben einer Notiz, um sie endgueltig zu loeschen.  
+
+Chat
+
+Verbinde dich mit dem globalen CYD-Chat.  
+
+    Diese App erfordert eine aktive WLAN-Verbindung.  
+
+    Tippe deine Nachricht bequem ueber die virtuelle Tastatur ein.  
+
+    Nachrichten werden automatisch ueber das Netzwerk mit anderen Nutzern synchronisiert.  
+
+Read (MD-Reader)
+
+Liest Markdown-Dateien wie diese von deiner SD-Karte.  
+
+    Die SD-Karte muss eingelegt und funktionstuechtig sein.  
+
+    Zeigt bis zu 20 Dateien aus dem Hauptverzeichnis an.  
+
+    Tippe einfach auf den Bildschirm, um weiterzublaettern, wenn der Text laenger als eine Seite ist.  
+
+WebUntis (Stundenplan)
+
+Zeigt den aktuellen Stundenplan deines Gymnasiums an.  
+
+    Erfordert zwingend eine aktive WLAN-Verbindung.  
+
+    Waehle zunaechst einen Wochentag von Montag bis Samstag aus.  
+
+    Anschliessend siehst du Fach, Lehrer, Raum und die genaue Uhrzeit der Stunde.  
+
+Settings (Einstellungen)
+
+Passe dein CYD Phone an deine Beduerfnisse an.  
+
+    WiFi/Zeit: Schalte die WLAN-Verbindung und die automatische Zeitsynchronisation AN oder AUS.  
+
+    Zeitzone: Wechsle mit einem Tippen zwischen Sommerzeit und Winterzeit.  
+
+    Du kannst hier bei Problemen auch das WLAN oder die SD-Karte neu laden.  
+
+Virtuelle Tastatur
+
+Einige Apps (wie Chat und Notizen) nutzen die eingebaute Bildschirmtastatur.  
+
+    Mit der Taste 123 oder ABC wechselst du zwischen normalen Buchstaben und Zahlen oder Symbolen.  
+
+    Die Taste mit dem Pfeil nach oben schaltet zwischen Gross- und Kleinbuchstaben um.  
+
+    SPACE fuegt ein Leerzeichen ein.  
+
+    Der Pfeil nach links loescht das zuletzt getippte Zeichen.  
+
+    Mit OK speicherst du deine fertige Eingabe und schliesst die Tastatur.
