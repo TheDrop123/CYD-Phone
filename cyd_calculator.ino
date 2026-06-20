@@ -985,7 +985,7 @@ void calculator() {
             break;
           case '^': result = pow(result, currentNum); break;
         }
-        display = String(result, 6);
+        display = String(result, 2);
         input = "";
         lastOperator = ' ';
         newNumber = true;
