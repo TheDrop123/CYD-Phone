@@ -885,7 +885,7 @@ void calculator() {
     tft.fillRect(5, 5, 230, 60, TFT_DARKGREY);
     tft.drawRect(5, 5, 230, 60, TFT_WHITE);
     tft.setTextDatum(TR_DATUM);
-    tft.setTextSize(2);
+    tft.setTextSize(1.5);
     
     if (error) {
       tft.setTextColor(TFT_RED, TFT_DARKGREY);
@@ -1004,7 +1004,7 @@ void calculator() {
             break;
           case '^': result = pow(result, currentNum); break;
         }
-        display = String(result, 6);
+        display = String(result, 2);
       } else {
         result = display.toFloat();
       }
