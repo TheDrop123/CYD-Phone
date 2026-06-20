@@ -946,7 +946,7 @@ void calculator() {
         }
       }
     }
-    else if (value == "√") {
+    else if (value == "Wr.") {
       float num = display.toFloat();
       if (num >= 0) {
         display = String(sqrt(num), 6);
