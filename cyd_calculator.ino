@@ -870,9 +870,9 @@ void calculator() {
     {"=", 170, 230, 55, 35, TFT_GREEN},
     
     // Untere Reihe
-    {"^", 5, 295, 50, 30, TFT_PURPLE},
-    {"1/x", 60, 295, 105, 30, TFT_DARKGREY},
-    {"←", 170, 295, 55, 30, TFT_DARKGREY},
+    {"^", 5, 270, 50, 30, TFT_PURPLE},
+    {"1/x", 60, 270, 105, 30, TFT_DARKGREY},
+    {"←", 170, 270, 55, 30, TFT_DARKGREY},
     
     // Zurück
     {"Zurueck", 5, 330, 230, 25, TFT_RED}
