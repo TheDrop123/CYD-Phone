@@ -1,0 +1,112 @@
+#include <lvgl.h>
+#include <TFT_eSPI.h>
+#include <XPT2046_Touchscreen.h>
+
+// Pins für den Touch-Controller des CYD (Cheap Yellow Display)
+#define XPT2046_IRQ 36
+#define XPT2046_MOSI 32
+#define XPT2046_MISO 39
+#define XPT2046_CLK 25
+#define XPT2046_CS 33
+
+SPIClass mySpi = SPIClass(VSPI);
+XPT2046_Touchscreen ts(XPT2046_CS, XPT2046_IRQ);
+TFT_eSPI tft = TFT_eSPI();
+
+// Buffer für LVGL Grafik-Rendering
+static const uint32_t screenWidth  = 320;
+static const uint32_t screenHeight = 240;
+static lv_disp_draw_buf_t draw_buf;
+static lv_color_t buf[screenWidth * 10];
+
+// Display Flush-Funktion für LVGL (zeichnet auf das TFT)
+void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
+    uint32_t w = (area->x2 - area->x1 + 1);
+    uint32_t h = (area->y2 - area->y1 + 1);
+    tft.startWrite();
+    tft.setAddrWindow(area->x1, area->y1, w, h);
+    tft.pushColors((uint16_t *)&color_p->full, w * h, true);
+    tft.endWrite();
+    lv_disp_flush_ready(disp);
+}
+
+// Touchpad Lese-Funktion mit direkter Abfrage (Ohne Interrupt-Sperre)
+void my_touchpad_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
+    if (ts.touched()) {
+        TS_Point p = ts.getPoint();
+        
+        // Touch-Koordinaten-Mapping für das CYD im Querformat (USB-Port links)
+        data->point.x = map(p.x, 300, 3700, 0, screenWidth);
+        data->point.y = map(p.y, 280, 3800, 0, screenHeight);
+        data->state = LV_INDEV_STATE_PR;
+
+        // Debug-Ausgabe zur Kontrolle der Klicks im Seriellen Monitor
+        Serial.printf("Touch bei -> X: %d, Y: %d\n", data->point.x, data->point.y);
+    } else {
+        data->state = LV_INDEV_STATE_REL;
+    }
+}
+
+void setup() {
+    Serial.begin(115200);
+    delay(500);
+    Serial.println("CYD Tastatur-Test startet...");
+
+    // Hardware initialisieren
+    tft.begin();
+    tft.setRotation(1); // Querformat (USB-Port links)
+    
+    mySpi.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
+    ts.begin(mySpi);
+    ts.setRotation(1); // Touch-Ausrichtung an TFT-Rotation anpassen
+
+    // LVGL Framework initialisieren
+    lv_init();
+    lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
+
+    // Display-Treiber registrieren
+    static lv_disp_drv_t disp_drv;
+    lv_disp_drv_init(&disp_drv);
+    disp_drv.hor_res = screenWidth;
+    disp_drv.ver_res = screenHeight;
+    disp_drv.flush_cb = my_disp_flush;
+    disp_drv.draw_buf = &draw_buf;
+    lv_disp_drv_register(&disp_drv);
+
+    // Touch-Treiber registrieren
+    static lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.read_cb = my_touchpad_read;
+    lv_indev_drv_register(&indev_drv);
+
+    // --- UI ELEMENTE ERSTELLEN ---
+    
+    // 1. Textfeld erstellen
+    lv_obj_t * text_area = lv_textarea_create(lv_scr_act());
+    lv_obj_set_size(text_area, 240, 40);
+    lv_obj_align(text_area, LV_ALIGN_TOP_MID, 0, 10);
+    lv_textarea_set_placeholder_text(text_area, "Tippen...");
+
+    // 2. Tastatur erstellen
+    lv_obj_t * keyboard = lv_keyboard_create(lv_scr_act());
+    lv_obj_set_size(keyboard, 310, 150);
+    lv_obj_align(keyboard, LV_ALIGN_BOTTOM_MID, 0, -5);
+    
+    // 3. Verknüpfung aktivieren & Fokus setzen
+    lv_keyboard_set_textarea(keyboard, text_area);
+    lv_obj_add_state(text_area, LV_STATE_FOCUSED);
+    
+    Serial.println("Setup erfolgreich beendet! Das System läuft.");
+}
+
+void loop() {
+    // DER HERZSCHLAG: Meldet LVGL, dass 5 Millisekunden vergangen sind
+    lv_tick_inc(5); 
+    
+    // Verarbeitet Grafik-Updates und Touch-Berechnungen
+    lv_timer_handler(); 
+    
+    delay(5);
+}
+
