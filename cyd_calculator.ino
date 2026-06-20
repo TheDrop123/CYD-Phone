@@ -254,8 +254,8 @@ void handleButtonPress(String label) {
     newNumber = true;
   }
   else if (label == ".") {
-    // Decimal point
-    if (!displayValue.contains(".")) {
+    // Decimal point - nur hinzufuegen wenn noch kein Punkt vorhanden
+    if (displayValue.indexOf(".") == -1) {
       displayValue += ".";
     }
   }
