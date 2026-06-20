@@ -8,6 +8,7 @@
 #include <SD.h>
 #include <FS.h>
 #include <SPIFFS.h>
+#include "icons.h"
 
 // ============ TOUCH PINS ============
 #define XPT2046_IRQ 36
@@ -291,44 +292,15 @@ bool getTouch(int& x, int& y) {
 // ================= MENU ICONS =================
 
 void drawMenuIcon(int x, int y, const char* name) {
-  int cx = x + 22, cy = y + 20;
-  if (strcmp(name, "Calc") == 0) {
-    tft.fillRect(cx - 10, cy - 8, 20, 16, TFT_WHITE);
-    tft.setTextColor(TFT_BLACK, TFT_WHITE); tft.setTextSize(1);
-    tft.setCursor(cx - 4, cy - 5); tft.print("x");
-    tft.drawFastHLine(cx - 8, cy, 16, TFT_BLACK);
-  } else if (strcmp(name, "Draw") == 0) {
-    tft.fillCircle(cx - 5, cy - 3, 4, TFT_YELLOW);
-    tft.fillCircle(cx + 5, cy + 2, 5, TFT_RED);
-    tft.fillCircle(cx, cy - 7, 3, TFT_BLUE);
-    tft.fillCircle(cx + 2, cy + 6, 3, TFT_GREEN);
-  } else if (strcmp(name, "Notes") == 0) {
-    tft.fillRect(cx - 8, cy - 10, 16, 20, TFT_WHITE);
-    tft.drawFastHLine(cx - 5, cy - 4, 10, TFT_BLACK);
-    tft.drawFastHLine(cx - 5, cy + 1, 10, TFT_BLACK);
-    tft.drawFastHLine(cx - 5, cy + 6, 10, TFT_BLACK);
-  } else if (strcmp(name, "Chat") == 0) {
-    tft.fillRoundRect(cx - 10, cy - 7, 20, 14, 3, TFT_WHITE);
-    tft.fillTriangle(cx - 4, cy + 7, cx + 4, cy + 7, cx, cy + 12, TFT_WHITE);
-  } else if (strcmp(name, "Read") == 0) {
-    tft.fillRect(cx - 6, cy - 10, 12, 20, TFT_WHITE);
-    tft.fillRect(cx - 10, cy - 8, 8, 16, TFT_CYAN);
-    tft.drawFastVLine(cx + 2, cy - 8, 16, TFT_WHITE);
-    tft.drawFastVLine(cx - 2, cy - 6, 12, TFT_BLACK);
-    tft.drawFastVLine(cx + 6, cy - 6, 12, TFT_BLACK);
-  } else if (strcmp(name, "Settings") == 0) {
-    tft.fillCircle(cx, cy, 8, TFT_WHITE);
-    tft.fillCircle(cx, cy, 4, TFT_ORANGE);
-    for (int i = 0; i < 6; i++) {
-      float a = i * 1.047;
-      tft.fillCircle(cx + cos(a) * 10, cy + sin(a) * 10, 3, TFT_WHITE);
-    }
-  } else if (strcmp(name, "WebUntis") == 0) {
-    tft.fillRect(cx - 10, cy - 8, 20, 16, 0x07E0);
-    tft.setTextColor(TFT_WHITE, 0x07E0); tft.setTextSize(1);
-    tft.setCursor(cx - 6, cy - 4); tft.print("U");
-    tft.drawFastHLine(cx - 8, cy + 4, 16, TFT_WHITE);
-  }
+  const uint16_t* arr = nullptr;
+  if (strcmp(name, "Calc") == 0) arr = icon_calc;
+  else if (strcmp(name, "Draw") == 0) arr = icon_draw;
+  else if (strcmp(name, "Notes") == 0) arr = icon_notes;
+  else if (strcmp(name, "Chat") == 0) arr = icon_chat;
+  else if (strcmp(name, "Read") == 0) arr = icon_book;
+  else if (strcmp(name, "Settings") == 0) arr = icon_settings;
+  else if (strcmp(name, "WebUntis") == 0) arr = icon_untis;
+  if (arr) tft.pushImage(x + 2, y + 6, 24, 24, (uint16_t*)arr);
 }
 
 // ================= MENU =================
@@ -357,9 +329,7 @@ void drawMenu() {
     auto& b = apps[i];
     tft.fillRoundRect(b.x, b.y, b.w, b.h, 6, b.color);
     tft.drawRoundRect(b.x, b.y, b.w, b.h, 6, TFT_WHITE);
-    if (i < 6) {
-      drawMenuIcon(b.x + 4, b.y + 5, b.label);
-    }
+    drawMenuIcon(b.x + 4, b.y + 5, b.label);
     tft.setTextColor(TFT_WHITE, b.color);
     tft.setTextDatum(MC_DATUM);
     tft.drawString(b.label, b.x + b.w / 2, b.y + b.h - 12, 1);
