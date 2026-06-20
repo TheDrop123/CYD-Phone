@@ -1,3 +1,6 @@
+<h1>CYD-Phone</h1>
+
+<h2>English:</h2>
 Schools usually ban phones because they can be used to record people, take photos, cheat on tests, distract students, and enable cyberbullying.
 
 Since phones have cameras and microphones, students could record teachers or classmates without permission, which can cause privacy and legal issues especially in Germany where this project is based in in particular  §201a StGB
@@ -33,7 +36,7 @@ And also we are going to integrate WebUntis API there.. that means that we will 
 <img width="152" height="331" alt="image" src="https://github.com/user-attachments/assets/d0bbeb3b-e6f9-410e-9eee-232a82c9da0e" />
 
 
-Deutsch: 
+<h2>Deutsch:</h2>
 
 Schulen verbieten Mobiltelefone meist deshalb, weil sie dazu genutzt werden können, Personen aufzunehmen, Fotos zu machen, bei Prüfungen zu schummeln, Schüler abzulenken und Cybermobbing zu ermöglichen.
 
@@ -67,11 +70,11 @@ Außerdem gibt es eine Standard-Notiz-App; sie dient – ​​wie der Name scho
 Zudem werden wir die WebUntis-API integrieren. Das bedeutet, dass wir unseren Stundenplan im Blick behalten können, wie hier zu sehen:
 <img width="152" height="331" alt="image" src="https://github.com/user-attachments/assets/d0bbeb3b-e6f9-410e-9eee-232a82c9da0e" />
 
-<h2>SchoolOS:</h2>
+<h3>SchoolOS:</h3>
 <img width="300" heigth="auto" src="https://github.com/TheDrop123/CYD-Phone/blob/main/Screenshots%20CYD/PXL_20260620_175603071.MP.jpg" />
 
-Die Apps
-Calc (Taschenrechner)
+<h3>Die Apps:</h3>
+<h4>Calc (Taschenrechner)</h4>
 
 Ein Standard-Taschenrechner fuer deine taeglichen Rechnungen.  
 
@@ -81,7 +84,7 @@ Ein Standard-Taschenrechner fuer deine taeglichen Rechnungen.
 
     Mit der Taste C loescht du deine aktuelle Eingabe.  
 
-Draw (Zeichnen)
+<h4>Draw (Zeichnen)</h4>
 
 Deine App fuer schnelle kreative Skizzen.  
 
@@ -95,7 +98,7 @@ Deine App fuer schnelle kreative Skizzen.
 
     RAUS oder ZURUECK beendet die Zeichen-App und bringt dich ins Menue.  
 
-Notes (Notizen)
+<h4>Notes (Notizen)</h4>
 
 Hier kannst du Textnotizen erstellen und dauerhaft auf der SD-Karte speichern.  
 
@@ -105,7 +108,7 @@ Hier kannst du Textnotizen erstellen und dauerhaft auf der SD-Karte speichern.
 
     Tippe auf das rote X neben einer Notiz, um sie endgueltig zu loeschen.  
 
-Chat
+<h4>Chat</h4>
 
 Verbinde dich mit dem globalen CYD-Chat.  
 
@@ -115,7 +118,7 @@ Verbinde dich mit dem globalen CYD-Chat.
 
     Nachrichten werden automatisch ueber das Netzwerk mit anderen Nutzern synchronisiert.  
 
-Read (MD-Reader)
+<h4>Read (MD-Reader)</h4>
 
 Liest Markdown-Dateien wie diese von deiner SD-Karte.  
 
@@ -125,7 +128,7 @@ Liest Markdown-Dateien wie diese von deiner SD-Karte.
 
     Tippe einfach auf den Bildschirm, um weiterzublaettern, wenn der Text laenger als eine Seite ist.  
 
-WebUntis (Stundenplan)
+<h4>WebUntis (Stundenplan)</h4>
 
 Zeigt den aktuellen Stundenplan deines Gymnasiums an.  
 
@@ -135,7 +138,7 @@ Zeigt den aktuellen Stundenplan deines Gymnasiums an.
 
     Anschliessend siehst du Fach, Lehrer, Raum und die genaue Uhrzeit der Stunde.  
 
-Settings (Einstellungen)
+<h4>Settings (Einstellungen)</h4>
 
 Passe dein CYD Phone an deine Beduerfnisse an.  
 
@@ -145,7 +148,7 @@ Passe dein CYD Phone an deine Beduerfnisse an.
 
     Du kannst hier bei Problemen auch das WLAN oder die SD-Karte neu laden.  
 
-Virtuelle Tastatur
+<h4>Virtuelle Tastatur</h4>
 
 Einige Apps (wie Chat und Notizen) nutzen die eingebaute Bildschirmtastatur.  
 
