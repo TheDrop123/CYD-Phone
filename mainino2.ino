@@ -711,7 +711,7 @@ void showMarkdown(String path) {
 // ================= WIFI HELPER =================
 
 void ensureWiFi() {
-  if (WiFi.status() != WL_CONNECTED && useWiFiTime) {
+  if (WiFi.status() != WL_CONNECTED) {
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     int tries = 0;
     while (WiFi.status() != WL_CONNECTED && tries < 20) {
@@ -1702,6 +1702,16 @@ void webuntisApp() {
   tft.drawString("Stundenplan wird", 120, 100, 1);
   tft.drawString("geladen...", 120, 120, 1);
 
+  // Sync time via NTP
+  configTime(3600, 3600, "pool.ntp.org", "time.google.com");
+  struct tm ti;
+  int timeTries = 0;
+  while (!getLocalTime(&ti) && timeTries < 20) {
+    delay(500); timeTries++;
+  }
+  char dateStr[9];
+  sprintf(dateStr, "%04d%02d%02d", ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday);
+
   WiFiClientSecure client;
   client.setInsecure();
 
@@ -1717,82 +1727,92 @@ void webuntisApp() {
   };
   std::vector<Period> periods;
 
-  // Login
-  String loginJson = "{\"id\":\"1\",\"method\":\"authenticate\",\"params\":{\"user\":\"9b\",\"password\":\"BietL2024!\"},\"jsonrpc\":\"2.0\"}";
-
-  http.begin(client, rpcUrl);
-  http.addHeader("Content-Type", "application/json");
-  int code = http.POST(loginJson);
-  String sessionId = "";
-  if (code == 200) {
+  // Helper: POST JSON-RPC and return response body
+  auto rpcCall = [&](const String& jsonBody) -> String {
+    http.begin(client, rpcUrl);
+    http.addHeader("Content-Type", "application/json");
+    http.POST(jsonBody);
     String resp = http.getString();
-    int si = resp.indexOf("\"sessionId\":\"");
-    if (si > 0) {
-      sessionId = resp.substring(si + 13);
-      sessionId = sessionId.substring(0, sessionId.indexOf("\""));
-    }
+    http.end();
+    return resp;
+  };
+
+  // Login
+  String loginResp = rpcCall("{\"id\":\"1\",\"method\":\"authenticate\",\"params\":{\"user\":\"9b\",\"password\":\"BietL2024!\"},\"jsonrpc\":\"2.0\"}");
+  String sessionId = "";
+  int si = loginResp.indexOf("\"sessionId\":\"");
+  if (si > 0) {
+    sessionId = loginResp.substring(si + 13);
+    sessionId = sessionId.substring(0, sessionId.indexOf("\""));
   }
-  http.end();
 
   if (sessionId != "") {
-    // Get today's date
-    time_t now;
-    struct tm ti;
-    if (!getLocalTime(&ti)) {
-      ti.tm_year = 2025; ti.tm_mon = 0; ti.tm_mday = 15;
+    // Find class ID for "9b"
+    int classId = 1;
+    String klassenResp = rpcCall("{\"id\":\"2\",\"method\":\"getKlassen\",\"params\":{},\"jsonrpc\":\"2.0\"}");
+    int ks = 0;
+    while (true) {
+      int ki = klassenResp.indexOf("\"name\":\"", ks);
+      if (ki < 0) break;
+      String kn = klassenResp.substring(ki + 8);
+      kn = kn.substring(0, kn.indexOf("\""));
+      if (kn == "9b") {
+        int idi = klassenResp.lastIndexOf("\"id\":", ki);
+        if (idi > 0) {
+          classId = klassenResp.substring(idi + 5).toInt();
+        }
+        break;
+      }
+      ks = ki + 1;
     }
-    char dateStr[9];
-    sprintf(dateStr, "%04d%02d%02d", ti.tm_year + 1900, ti.tm_mon + 1, ti.tm_mday);
 
-    // Get timetable for grade 9b (classId= needs to be found)
-    // Try with klasseId 1 (grade), use department/class query
-    String timetableJson = "{\"id\":\"2\",\"method\":\"getTimetable\",\"params\":{\"options\":{\"element\":{\"id\":1,\"type\":1},\"startDate\":\"" + String(dateStr) + "\",\"endDate\":\"" + String(dateStr) + "\"}},\"jsonrpc\":\"2.0\"}";
+    // Get timetable
+    String tj = "{\"id\":\"3\",\"method\":\"getTimetable\",\"params\":{\"options\":{\"element\":{\"id\":" + String(classId) + ",\"type\":1},\"startDate\":\"" + dateStr + "\",\"endDate\":\"" + dateStr + "\"}},\"jsonrpc\":\"2.0\"}";
 
     http.begin(client, rpcUrl);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("Cookie", "JSESSIONID=" + sessionId);
-    code = http.POST(timetableJson);
-    if (code == 200) {
-      String resp = http.getString();
-      int pos = 0;
-      while (true) {
-        int si = resp.indexOf("\"startTime\":", pos);
-        if (si < 0) break;
-        int st = resp.substring(si + 12).toInt();
-        int ei = resp.indexOf("\"endTime\":", si);
-        int en = 0;
-        if (ei > 0) en = resp.substring(ei + 10).toInt();
-
-        String subj = "", teach = "", room = "";
-        int ss = resp.indexOf("\"subject\"", si);
-        if (ss > 0) {
-          int sn = resp.indexOf("\"name\":\"", ss);
-          if (sn > 0) {
-            subj = resp.substring(sn + 8);
-            subj = subj.substring(0, subj.indexOf("\""));
-          }
-        }
-        int ts = resp.indexOf("\"teacher\"", si);
-        if (ts > 0) {
-          int tn = resp.indexOf("\"name\":\"", ts);
-          if (tn > 0) {
-            teach = resp.substring(tn + 8);
-            teach = teach.substring(0, teach.indexOf("\""));
-          }
-        }
-        int rs = resp.indexOf("\"room\"", si);
-        if (rs > 0) {
-          int rn = resp.indexOf("\"name\":\"", rs);
-          if (rn > 0) {
-            room = resp.substring(rn + 8);
-            room = room.substring(0, room.indexOf("\""));
-          }
-        }
-        periods.push_back({st, en, subj, teach, room});
-        pos = si + 1;
-      }
-    }
+    String resp = "";
+    if (http.POST(tj) == 200) resp = http.getString();
     http.end();
+
+    int pos = 0;
+    while (true) {
+      si = resp.indexOf("\"startTime\":", pos);
+      if (si < 0) break;
+      int st = resp.substring(si + 12).toInt();
+      int ei = resp.indexOf("\"endTime\":", si);
+      int en = 0;
+      if (ei > 0) en = resp.substring(ei + 10).toInt();
+
+      String subj = "", teach = "", room = "";
+      int ss = resp.indexOf("\"subject\"", si);
+      if (ss > 0) {
+        int sn = resp.indexOf("\"name\":\"", ss);
+        if (sn > 0) {
+          subj = resp.substring(sn + 8);
+          subj = subj.substring(0, subj.indexOf("\""));
+        }
+      }
+      int ts = resp.indexOf("\"teacher\"", si);
+      if (ts > 0) {
+        int tn = resp.indexOf("\"name\":\"", ts);
+        if (tn > 0) {
+          teach = resp.substring(tn + 8);
+          teach = teach.substring(0, teach.indexOf("\""));
+        }
+      }
+      int rs = resp.indexOf("\"room\"", si);
+      if (rs > 0) {
+        int rn = resp.indexOf("\"name\":\"", rs);
+        if (rn > 0) {
+          room = resp.substring(rn + 8);
+          room = room.substring(0, room.indexOf("\""));
+        }
+      }
+      periods.push_back({st, en, subj, teach, room});
+      pos = si + 1;
+    }
   }
 
   // Display timetable
@@ -1804,11 +1824,9 @@ void webuntisApp() {
   tft.setTextDatum(MC_DATUM);
   tft.setTextSize(1);
 
-  struct tm td;
-  if (!getLocalTime(&td)) { td.tm_wday = 0; }
   const char* days[] = {"So","Mo","Di","Mi","Do","Fr","Sa"};
   char hdr[32];
-  sprintf(hdr, "Stundenplan  %s", days[td.tm_wday]);
+  sprintf(hdr, "Stundenplan  %s", days[ti.tm_wday]);
   tft.drawString(hdr, 120, 14, 1);
 
   tft.fillRoundRect(200, 3, 35, 22, 3, TFT_RED);
