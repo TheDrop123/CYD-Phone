@@ -1,3 +1,4 @@
+
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include <XPT2046_Touchscreen.h>
@@ -363,6 +364,7 @@ void loop()
         )
         {
             Serial.println("Calc");
+            calc();
         }
 
         if (
