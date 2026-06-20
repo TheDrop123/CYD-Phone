@@ -1822,7 +1822,7 @@ void chatApp() {
 
 struct UntisPeriod {
   int start, end;
-  String subject, teacher, room;
+  String subject, subjectLong, teacher, room;
 };
 
 // Liefert das Datum (YYYYMMDD) fuer einen gewuenschten Wochentag (1=Montag .. 7=Sonntag)
@@ -1886,13 +1886,18 @@ bool showTimetableForDay(int dayOfWeek, const char* dayName) {
         int en = 0;
         if (ei > 0) en = resp.substring(ei + 10).toInt();
 
-        String subj = "", teach = "", room = "";
+        String subj = "", subjLong = "", teach = "", room = "";
         int ss = resp.indexOf("\"subjects\"", si);
         if (ss > 0) {
           int sn = resp.indexOf("\"name\":\"", ss);
           if (sn > 0) {
             subj = resp.substring(sn + 8);
             subj = subj.substring(0, subj.indexOf("\""));
+          }
+          int sl = resp.indexOf("\"longName\":\"", ss);
+          if (sl > 0) {
+            subjLong = resp.substring(sl + 12);
+            subjLong = subjLong.substring(0, subjLong.indexOf("\""));
           }
         }
         int ts = resp.indexOf("\"teachers\"", si);
@@ -1911,36 +1916,49 @@ bool showTimetableForDay(int dayOfWeek, const char* dayName) {
             room = room.substring(0, room.indexOf("\""));
           }
         }
-        periods.push_back({ st, en, subj, teach, room });
+        periods.push_back({ st, en, subj, subjLong, teach, room });
         pos = si + 1;
       }
     }
     http.end();
   }
 
+  // Group periods by start+end time
+  struct TimeSlot { int start, end; std::vector<UntisPeriod> periods; };
+  std::vector<TimeSlot> slots;
+  for (auto& p : periods) {
+    bool found = false;
+    for (auto& s : slots) { if (s.start == p.start && s.end == p.end) { s.periods.push_back(p); found = true; break; } }
+    if (!found) slots.push_back({p.start, p.end, {p}});
+  }
+
+  // Precompute heights
+  std::vector<int> heights;
+  for (auto& s : slots) {
+    if (s.periods.size() == 1) heights.push_back(56);
+    else heights.push_back(14 + (int)s.periods.size() * 13 + 6);
+  }
+
   tft.fillScreen(TFT_BLACK);
+
+  // Header: "Montag, 22.06.2026"
+  String dStr = String(dateStr);
+  String hdr = String(dayName) + ", " + dStr.substring(6,8) + "." + dStr.substring(4,6) + "." + dStr.substring(0,4);
   tft.fillRect(0, 0, 240, 28, 0x1D7C);
   tft.setTextColor(TFT_WHITE, 0x1D7C);
   tft.setTextDatum(MC_DATUM);
-  tft.setTextSize(1);
-  tft.drawString(String("Plan: ") + dayName, 100, 14, 1);
+  tft.drawString(hdr, 120, 14, 2);
 
   tft.fillRoundRect(200, 3, 35, 22, 3, TFT_RED);
   tft.setTextColor(TFT_WHITE, TFT_RED);
   tft.drawString("X", 217, 14, 1);
 
-  if (periods.empty()) {
+  if (slots.empty()) {
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
-    if (WiFi.status() != WL_CONNECTED) {
-      tft.drawString("Kein WLAN verbunden", 120, 140, 2);
-    } else {
-      tft.drawString("Keine Stunden", 120, 140, 2);
-      tft.drawString("an diesem Tag", 120, 165, 2);
-    }
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString("Tippen zum zurueck", 120, 200, 1);
-
+    if (WiFi.status() != WL_CONNECTED) tft.drawString("Kein WLAN", 120, 140, 2);
+    else tft.drawString("Keine Stunden", 120, 140, 2);
+    tft.drawString("Tippen zum zurueck", 120, 180, 1);
     int tx, ty;
     while (!getTouch(tx, ty)) delay(10);
     bool exitAll = (ty < 28 && tx > 195);
@@ -1948,71 +1966,85 @@ bool showTimetableForDay(int dayOfWeek, const char* dayName) {
     return exitAll;
   }
 
-  int scroll = 0;
+  int scrollSlot = 0;
 
   while (true) {
     tft.fillRect(0, 28, 240, 252, TFT_BLACK);
+    int y = 32;
+    int si = scrollSlot;
+    while (si < (int)slots.size() && y < 275) {
+      auto& s = slots[si];
+      int sh = heights[si];
+      int drawEnd = min(y + sh, 275);
 
-    for (int i = scroll; i < min(scroll + 8, (int)periods.size()); i++) {
-      int y = 32 + (i - scroll) * 28;
-      int h = 26;
-
-      tft.fillRoundRect(2, y, 236, h, 3, 0x0841);
-      tft.drawRoundRect(2, y, 236, h, 3, TFT_DARKGREY);
-
-      char tb[16];
-      int sh = periods[i].start / 100;
-      int sm = periods[i].start % 100;
-      int eh = periods[i].end / 100;
-      int em = periods[i].end % 100;
-      sprintf(tb, "%02d:%02d", sh, sm);
-      tft.setTextColor(0x1D7C, 0x0841);
-      tft.setTextDatum(MC_DATUM);
-      tft.setTextSize(1);
-      tft.drawString(tb, 38, y + h / 2, 1);
-
-      tft.setTextColor(TFT_WHITE, 0x0841);
+      char tb[20];
+      sprintf(tb, "%02d:%02d - %02d:%02d", s.start / 100, s.start % 100, s.end / 100, s.end % 100);
+      tft.setTextColor(TFT_YELLOW, TFT_BLACK);
       tft.setTextDatum(TL_DATUM);
-      tft.setCursor(70, y + 3);
-      tft.print(periods[i].subject);
+      tft.setCursor(4, y);
+      tft.print(tb);
 
-      tft.setTextColor(TFT_LIGHTGREY, 0x0841);
-      tft.setCursor(70, y + 14);
-      tft.print(periods[i].teacher);
-
-      tft.setTextColor(TFT_CYAN, 0x0841);
-      tft.setTextDatum(TR_DATUM);
-      tft.setCursor(235, y + 14);
-      tft.print(periods[i].room);
-
-      tft.fillRect(0, y, 2, h, 0x1D7C);
+      if (s.periods.size() == 1) {
+        auto& p = s.periods[0];
+        if (y + 14 < drawEnd) {
+          tft.setTextColor(0x1D7C, TFT_BLACK);
+          tft.setCursor(4, y + 14); tft.print("Teacher: ");
+          tft.setTextColor(TFT_WHITE, TFT_BLACK);
+          tft.print(p.teacher);
+        }
+        if (y + 26 < drawEnd) {
+          tft.setTextColor(0x1D7C, TFT_BLACK);
+          tft.setCursor(4, y + 26); tft.print("Subject: ");
+          tft.setTextColor(TFT_WHITE, TFT_BLACK);
+          tft.print(p.subject);
+          if (p.subjectLong.length() > 0) {
+            tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+            tft.print(" (");
+            tft.print(p.subjectLong);
+            tft.print(")");
+          }
+        }
+        if (y + 40 < drawEnd) {
+          tft.setTextColor(0x1D7C, TFT_BLACK);
+          tft.setCursor(4, y + 40); tft.print("Room: ");
+          tft.setTextColor(TFT_WHITE, TFT_BLACK);
+          tft.print(p.room);
+        }
+      } else {
+        for (int pi = 0; pi < (int)s.periods.size() && y + 14 + pi * 13 < drawEnd; pi++) {
+          auto& p = s.periods[pi];
+          int ly = y + 14 + pi * 13;
+          tft.setTextColor(TFT_GREEN, TFT_BLACK);
+          tft.setCursor(4, ly); tft.print(String(pi + 1) + ": ");
+          tft.setTextColor(TFT_WHITE, TFT_BLACK);
+          tft.print(p.teacher);
+          tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+          tft.print(" | ");
+          tft.setTextColor(TFT_WHITE, TFT_BLACK);
+          tft.print(p.subject);
+          tft.setTextColor(TFT_CYAN, TFT_BLACK);
+          tft.print(" | ");
+          tft.setTextColor(TFT_WHITE, TFT_BLACK);
+          tft.print(p.room);
+        }
+      }
+      y += sh;
+      si++;
     }
 
-    if (scroll > 0) {
-      tft.fillTriangle(120, 285, 110, 277, 130, 277, TFT_LIGHTGREY);
-    }
-    if (scroll + 8 < (int)periods.size()) {
-      tft.fillTriangle(120, 275, 110, 283, 130, 283, TFT_LIGHTGREY);
-    }
+    if (scrollSlot > 0) tft.fillTriangle(120, 285, 110, 278, 130, 278, TFT_LIGHTGREY);
+    if (si < (int)slots.size()) tft.fillTriangle(120, 275, 110, 282, 130, 282, TFT_LIGHTGREY);
 
     int tx, ty;
-    if (!getTouch(tx, ty)) {
-      delay(10);
-      continue;
-    }
+    if (!getTouch(tx, ty)) { delay(10); continue; }
 
-    if (ty < 28 && tx > 195) {
-      drainTouch();
-      return true;  // ganz raus
-    }
-    if (ty < 28) {
-      drainTouch();
-      return false;  // zurueck zur Tagesauswahl
-    }
+    if (ty < 28 && tx > 195) { drainTouch(); return true; }
+    if (ty < 28) { drainTouch(); return false; }
 
     if (ty > 270) {
-      if (ty < 285 && scroll > 0) scroll--;
-      else if (ty >= 285 && scroll + 8 < (int)periods.size()) scroll++;
+      if (ty < 285 && scrollSlot > 0) scrollSlot--;
+      else if (ty >= 285 && si < (int)slots.size()) scrollSlot++;
+      delay(150);
     }
     delay(150);
   }
