@@ -305,7 +305,7 @@ void drawMenuIcon(int x, int y, const char* name) {
   else if (strcmp(name, "Read") == 0) arr = icon_book;
   else if (strcmp(name, "Settings") == 0) arr = icon_settings;
   else if (strcmp(name, "WebUntis") == 0) arr = icon_untis;
-  if (arr) tft.pushImage(x + 2, y + 6, 24, 24, (uint16_t*)arr);
+  if (arr) tft.pushImage(x + 2, y + 6, 24, 24, (uint16_t*)arr, TFT_BLACK);
 }
 
 // ================= MENU =================
@@ -1580,7 +1580,6 @@ void notesApp() {
 
 void chatApp() {
   drainTouch();
-
   ensureWiFi();
 
   if (WiFi.status() != WL_CONNECTED) {
@@ -1588,7 +1587,6 @@ void chatApp() {
     tft.setTextColor(TFT_RED, TFT_BLACK);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("Kein WLAN", 120, 100, 2);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("Tippen zum zurueck", 120, 140, 1);
     int tx, ty;
     while (!getTouch(tx, ty)) delay(10);
@@ -1603,37 +1601,77 @@ void chatApp() {
   tft.drawString("Chat", 120, 20, 2);
   tft.drawString("Verbinde...", 120, 80, 1);
 
-  String pubkey = "";
-  String userId = "CYD-User-" + String(random(1000, 9999));
-  String groupId = "";
+  String pubkey = "", privkey = "", username = "", groupId = "";
+
+  // Load saved identity from SPIFFS
+  if (SPIFFS.begin(true)) {
+    if (SPIFFS.exists("/chat.json")) {
+      File f = SPIFFS.open("/chat.json", FILE_READ);
+      if (f) {
+        String s = f.readString();
+        f.close();
+        int u = s.indexOf("\"username\":\"");
+        if (u > 0) { int e = s.indexOf("\"", u + 12); if (e > u + 12) username = s.substring(u + 12, e); }
+        int p = s.indexOf("\"pubkey\":\"");
+        if (p > 0) { int e = s.indexOf("\"", p + 10); if (e > p + 10) pubkey = s.substring(p + 10, e); }
+        int r = s.indexOf("\"privkey\":\"");
+        if (r > 0) { int e = s.indexOf("\"", r + 11); if (e > r + 11) privkey = s.substring(r + 11, e); }
+      }
+    }
+  }
 
   HTTPClient http;
   http.setTimeout(5000);
   String apiBase = "http://149.102.157.124:3001";
 
-  http.begin(apiBase + "/api/register");
-  http.addHeader("Content-Type", "application/json");
-  String regBody = "{\"username\":\"" + userId + "\"}";
-  int code = http.POST(regBody);
-  if (code == 200 || code == 201) {
-    String resp = http.getString();
-    int pk = resp.indexOf("\"pubkey\":\"");
-    if (pk > 0) {
-      pubkey = resp.substring(pk + 10);
-      pubkey = pubkey.substring(0, pubkey.indexOf("\""));
+  if (pubkey == "") {
+    // Register new user
+    username = "CYD-User-" + String(random(1000, 9999));
+    http.begin(apiBase + "/api/register");
+    http.addHeader("Content-Type", "application/json");
+    String regBody = "{\"username\":\"" + username + "\",\"displayName\":\"" + username + "\"}";
+    int code = http.POST(regBody);
+    if (code == 200 || code == 201) {
+      String resp = http.getString();
+      int pk = resp.indexOf("\"pubkey\":\"");
+      if (pk > 0) pubkey = resp.substring(pk + 10, resp.indexOf("\"", pk + 10));
+      int pr = resp.indexOf("\"privkey\":\"");
+      if (pr > 0) privkey = resp.substring(pr + 11, resp.indexOf("\"", pr + 11));
     }
+    http.end();
+    if (pubkey != "") {
+      SPIFFS.begin(true);
+      File f = SPIFFS.open("/chat.json", FILE_WRITE);
+      if (f) {
+        f.print("{\"username\":\""); f.print(username);
+        f.print("\",\"pubkey\":\""); f.print(pubkey);
+        f.print("\",\"privkey\":\""); f.print(privkey);
+        f.print("\"}");
+        f.close();
+      }
+    }
+  } else {
+    // Recover existing identity
+    http.begin(apiBase + "/api/login");
+    http.addHeader("Content-Type", "application/json");
+    String loginBody = "{\"username\":\"" + username + "\"}";
+    int code = http.POST(loginBody);
+    if (code == 200) {
+      String resp = http.getString();
+      int pk = resp.indexOf("\"pubkey\":\"");
+      if (pk > 0) pubkey = resp.substring(pk + 10, resp.indexOf("\"", pk + 10));
+      int pr = resp.indexOf("\"privkey\":\"");
+      if (pr > 0) privkey = resp.substring(pr + 11, resp.indexOf("\"", pr + 11));
+    }
+    http.end();
   }
-  http.end();
 
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
   tft.drawString("Gruppen...", 120, 20, 2);
 
-  struct Grp {
-    String id, name;
-  };
-  std::vector<Grp> groups;
+  // Find "CYD-Chat" group
   if (pubkey != "") {
     http.begin(apiBase + "/api/groups?pubkey=" + pubkey);
     int gc = http.GET();
@@ -1646,45 +1684,40 @@ void chatApp() {
         String gid = gResp.substring(si + 6);
         gid = gid.substring(0, gid.indexOf("\""));
         int sn = gResp.indexOf("\"name\":\"", si);
-        String gn = "";
         if (sn > 0) {
-          gn = gResp.substring(sn + 8);
+          String gn = gResp.substring(sn + 8);
           gn = gn.substring(0, gn.indexOf("\""));
+          if (gn == "CYD-Chat") { groupId = gid; break; }
         }
-        groups.push_back({ gid, gn });
         pos = si + 1;
       }
     }
     http.end();
-  }
 
-  if (groups.empty() && pubkey != "") {
-    http.begin(apiBase + "/api/groups");
-    http.addHeader("Content-Type", "application/json");
-    String gBody = "{\"name\":\"CYD-Chat\",\"ownerPubkey\":\"" + pubkey + "\"}";
-    int gcode = http.POST(gBody);
-    if (gcode == 200 || gcode == 201) {
-      String gResp = http.getString();
-      int si = gResp.indexOf("\"id\":\"");
-      if (si > 0) {
-        groupId = gResp.substring(si + 6);
-        groupId = groupId.substring(0, groupId.indexOf("\""));
+    // Create group if not found
+    if (groupId == "") {
+      http.begin(apiBase + "/api/groups");
+      http.addHeader("Content-Type", "application/json");
+      String gBody = "{\"name\":\"CYD-Chat\",\"ownerPubkey\":\"" + pubkey + "\"}";
+      int gcode = http.POST(gBody);
+      if (gcode == 200 || gcode == 201) {
+        String gResp = http.getString();
+        int si = gResp.indexOf("\"id\":\"");
+        if (si > 0) {
+          groupId = gResp.substring(si + 6);
+          groupId = groupId.substring(0, groupId.indexOf("\""));
+        }
       }
+      http.end();
     }
-    http.end();
-  } else if (!groups.empty()) {
-    groupId = groups[0].id;
   }
 
   if (groupId == "") {
     tft.setTextColor(TFT_RED, TFT_BLACK);
     tft.drawString("Keine Verbindung", 120, 80, 2);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString("Tippen zum zurueck", 120, 120, 1);
     int tx, ty;
-    while (!getTouch(tx, ty)) {
-      delay(10);
-    }
+    while (!getTouch(tx, ty)) delay(10);
     drainTouch();
     drawMenu();
     return;
@@ -1719,7 +1752,6 @@ void chatApp() {
     tft.fillScreen(TFT_BLACK);
     tft.fillRect(0, 0, 240, 24, TFT_DARKGREY);
     tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
-    tft.setTextSize(1);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("CHAT", 120, 12, 1);
     tft.fillRoundRect(200, 2, 35, 20, 3, TFT_RED);
@@ -1768,9 +1800,11 @@ void chatApp() {
       int res = handleKeyboardTouch(tx, ty, chatInput, kbMode, 165);
       if (res == 2) {
         if (chatInput.length() > 0) {
+          chatInput.replace("\\", "\\\\");
+          chatInput.replace("\"", "\\\"");
           http.begin(apiBase + "/api/messages");
           http.addHeader("Content-Type", "application/json");
-          String msgBody = "{\"groupId\":\"" + groupId + "\",\"pubkey\":\"" + pubkey + "\",\"content\":\"" + chatInput + "\"}";
+          String msgBody = "{\"groupId\":\"" + groupId + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + chatInput + "\"}";
           http.POST(msgBody);
           http.end();
           chatInput = "";
@@ -1829,83 +1863,59 @@ bool showTimetableForDay(int dayOfWeek, const char* dayName) {
     strcpy(dateStr, "20250101");
   }
 
-  WiFiClientSecure client;
-  client.setInsecure();
-
-  String host = "coppi-gymnasium.webuntis.com";
-  String rpcUrl = "https://" + host + "/WebUntis/jsonrpc.do";
-
   HTTPClient http;
   http.setTimeout(10000);
 
   std::vector<UntisPeriod> periods;
-  String sessionId = "";
 
   if (WiFi.status() == WL_CONNECTED) {
-    String loginJson = "{\"id\":\"1\",\"method\":\"authenticate\",\"params\":{\"user\":\"9b\",\"password\":\"BietL2024!\"},\"jsonrpc\":\"2.0\"}";
+    char apiDate[11];
+    sprintf(apiDate, "%c%c%c%c-%c%c-%c%c", dateStr[0], dateStr[1], dateStr[2], dateStr[3], dateStr[4], dateStr[5], dateStr[6], dateStr[7]);
+    String url = String("http://149.102.157.124:3001/webuntis/timetable?start=") + apiDate + "&end=" + apiDate;
 
-    http.begin(client, rpcUrl);
-    http.addHeader("Content-Type", "application/json");
-    int code = http.POST(loginJson);
+    http.begin(url);
+    int code = http.GET();
     if (code == 200) {
       String resp = http.getString();
-      int si = resp.indexOf("\"sessionId\":\"");
-      if (si > 0) {
-        sessionId = resp.substring(si + 13);
-        sessionId = sessionId.substring(0, sessionId.indexOf("\""));
+      int pos = 0;
+      while (true) {
+        int si = resp.indexOf("\"startTime\":", pos);
+        if (si < 0) break;
+        int st = resp.substring(si + 12).toInt();
+        int ei = resp.indexOf("\"endTime\":", si);
+        int en = 0;
+        if (ei > 0) en = resp.substring(ei + 10).toInt();
+
+        String subj = "", teach = "", room = "";
+        int ss = resp.indexOf("\"subjects\"", si);
+        if (ss > 0) {
+          int sn = resp.indexOf("\"name\":\"", ss);
+          if (sn > 0) {
+            subj = resp.substring(sn + 8);
+            subj = subj.substring(0, subj.indexOf("\""));
+          }
+        }
+        int ts = resp.indexOf("\"teachers\"", si);
+        if (ts > 0) {
+          int tn = resp.indexOf("\"name\":\"", ts);
+          if (tn > 0) {
+            teach = resp.substring(tn + 8);
+            teach = teach.substring(0, teach.indexOf("\""));
+          }
+        }
+        int rs = resp.indexOf("\"rooms\"", si);
+        if (rs > 0) {
+          int rn = resp.indexOf("\"name\":\"", rs);
+          if (rn > 0) {
+            room = resp.substring(rn + 8);
+            room = room.substring(0, room.indexOf("\""));
+          }
+        }
+        periods.push_back({ st, en, subj, teach, room });
+        pos = si + 1;
       }
     }
     http.end();
-
-    if (sessionId != "") {
-      String timetableJson = "{\"id\":\"2\",\"method\":\"getTimetable\",\"params\":{\"options\":{\"element\":{\"id\":1,\"type\":1},\"startDate\":\"" + String(dateStr) + "\",\"endDate\":\"" + String(dateStr) + "\"}},\"jsonrpc\":\"2.0\"}";
-
-      http.begin(client, rpcUrl);
-      http.addHeader("Content-Type", "application/json");
-      http.addHeader("Cookie", "JSESSIONID=" + sessionId);
-      int code2 = http.POST(timetableJson);
-      if (code2 == 200) {
-        String resp = http.getString();
-        int pos = 0;
-        while (true) {
-          int si = resp.indexOf("\"startTime\":", pos);
-          if (si < 0) break;
-          int st = resp.substring(si + 12).toInt();
-          int ei = resp.indexOf("\"endTime\":", si);
-          int en = 0;
-          if (ei > 0) en = resp.substring(ei + 10).toInt();
-
-          String subj = "", teach = "", room = "";
-          int ss = resp.indexOf("\"subject\"", si);
-          if (ss > 0) {
-            int sn = resp.indexOf("\"name\":\"", ss);
-            if (sn > 0) {
-              subj = resp.substring(sn + 8);
-              subj = subj.substring(0, subj.indexOf("\""));
-            }
-          }
-          int ts = resp.indexOf("\"teacher\"", si);
-          if (ts > 0) {
-            int tn = resp.indexOf("\"name\":\"", ts);
-            if (tn > 0) {
-              teach = resp.substring(tn + 8);
-              teach = teach.substring(0, teach.indexOf("\""));
-            }
-          }
-          int rs = resp.indexOf("\"room\"", si);
-          if (rs > 0) {
-            int rn = resp.indexOf("\"name\":\"", rs);
-            if (rn > 0) {
-              room = resp.substring(rn + 8);
-              room = room.substring(0, room.indexOf("\""));
-            }
-          }
-          periods.push_back({ st, en, subj, teach, room });
-          pos = si + 1;
-        }
-      }
-      http.end();
-    }
   }
 
   tft.fillScreen(TFT_BLACK);
@@ -1924,8 +1934,6 @@ bool showTimetableForDay(int dayOfWeek, const char* dayName) {
     tft.setTextDatum(MC_DATUM);
     if (WiFi.status() != WL_CONNECTED) {
       tft.drawString("Kein WLAN verbunden", 120, 140, 2);
-    } else if (sessionId == "") {
-      tft.drawString("Login fehlgeschlagen", 120, 140, 2);
     } else {
       tft.drawString("Keine Stunden", 120, 140, 2);
       tft.drawString("an diesem Tag", 120, 165, 2);
