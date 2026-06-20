@@ -776,19 +776,19 @@ void loop() {
 
   if (getTouch(tx, ty)) {
     if (isButtonPressed(tx, ty, 10, 12, 108, 66)) {
-      pressAnim(10, 12, 108, 66, "Calc"); calculator();
+      calculator();
     } else if (isButtonPressed(tx, ty, 122, 12, 108, 66)) {
-      pressAnim(122, 12, 108, 66, "Draw"); drawing();
+      drawing();
     } else if (isButtonPressed(tx, ty, 10, 84, 108, 66)) {
-      pressAnim(10, 84, 108, 66, "Notes"); notesApp();
+      notesApp();
     } else if (isButtonPressed(tx, ty, 122, 84, 108, 66)) {
-      pressAnim(122, 84, 108, 66, "Chat"); chatApp();
+      chatApp();
     } else if (isButtonPressed(tx, ty, 10, 156, 108, 66)) {
-      pressAnim(10, 156, 108, 66, "Read"); showFileSelection();
+      showFileSelection();
     } else if (isButtonPressed(tx, ty, 122, 156, 108, 66)) {
-      pressAnim(122, 156, 108, 66, "Settings"); settingsApp();
+      settingsApp();
     } else if (isButtonPressed(tx, ty, 30, 228, 180, 38)) {
-      pressAnim(30, 228, 180, 38, "WebUntis"); webuntisApp();
+      webuntisApp();
     }
   }
 }
