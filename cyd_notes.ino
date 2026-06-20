@@ -1,6 +1,6 @@
 // ====================================================================
 //  CYD NOTES  –  Minimal Touch-UI für ESP32 "Cheap Yellow Display"
-//  Kein Terminal, nur grafische Oberfläche mit einer Notizen-App.
+//  no terminal just a gui for notes takking.
 // ====================================================================
 #include <SPI.h>
 #include <TFT_eSPI.h>
@@ -8,7 +8,7 @@
 #include <SD.h>
 #include <vector>
 
-// ==================== PIN DEFINITIONEN (CYD Standard) ====================
+// ==================== PIN DEFINITIONS (CYD Standard) ====================
 #define XPT2046_IRQ   36
 #define XPT2046_MOSI  32
 #define XPT2046_MISO  39
@@ -16,7 +16,7 @@
 #define XPT2046_CS    33
 #define SD_CS         5
 
-// ==================== HARDWARE OBJEKTE ====================
+// ==================== HARDWARE OBJECTS ====================
 TFT_eSPI tft = TFT_eSPI();
 SPIClass touchscreenSPI = SPIClass(HSPI);
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
@@ -33,15 +33,15 @@ uint16_t SUCCESS_COLOR= TFT_GREEN;
 enum Screen { SCREEN_HOME, SCREEN_NOTE_LIST, SCREEN_NOTE_EDIT };
 Screen currentScreen = SCREEN_HOME;
 
-std::vector<String> noteFiles;     // Dateinamen im /notes Ordner
+std::vector<String> noteFiles;     // filename in the /notes folder
 int    listScrollOffset = 0;
 const int LIST_VISIBLE   = 8;
 
-String editingFile   = "";         // aktuell geöffnete Notiz
-String editingText    = "";        // Inhalt im Editor
+String editingFile   = "";         // currently opened notes
+String editingText    = "";        // contents of editor
 bool   editingDirty    = false;
 
-// einfache Tastatur: 3 Zeilen Buchstaben/Zahlen, Umschalter, Space, Backspace, Enter
+// simple keyboard
 const char* kbLower[3] = { "qwertyuiop", "asdfghjkl", "zxcvbnm" };
 const char* kbUpper[3] = { "QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM" };
 const char* kbNums [3] = { "1234567890", "-_/:;()", "+*\"',.?!" };
@@ -61,9 +61,9 @@ void saveCurrentNote();
 void deleteNote(String filename);
 
 // ====================================================================
-//  ZENTRALE TOUCH-FUNKTION
-//  Liest den Touchscreen aus und rechnet die Rohdaten in
-//  Bildschirm-Pixelkoordinaten um (0..239 x, 0..319 y).
+//  central touch function 
+//  reads out the contents and coordinates and outputs teh raw data
+//  screen coordinates about (0..239 x, 0..319 y).
 // ====================================================================
 bool getTouch(int &x, int &y) {
   if (touchscreen.tirqTouched() && touchscreen.touched()) {
@@ -76,7 +76,7 @@ bool getTouch(int &x, int &y) {
 }
 
 // ====================================================================
-//  SETUP – alle Initialisierungen
+//  SETUP – all inistialisations
 // ====================================================================
 void setup() {
   Serial.begin(115200);
@@ -92,7 +92,7 @@ void setup() {
   touchscreen.begin(touchscreenSPI);
   touchscreen.setRotation(0);
 
-  // --- SD Karte ---
+  // --- SD card ---
   tft.setCursor(10, 10);
   tft.println("Init SD card...");
   if (SD.begin(SD_CS)) {
@@ -108,7 +108,7 @@ void setup() {
 }
 
 // ====================================================================
-//  LOOP – Touch abfragen, an aktuellen Screen weiterreichen
+//  lOOP – query touch, pass to current screen
 // ====================================================================
 void loop() {
   int tx, ty;
@@ -118,12 +118,12 @@ void loop() {
       case SCREEN_NOTE_LIST: handleNoteListTouch(tx, ty);  break;
       case SCREEN_NOTE_EDIT: handleEditorTouch(tx, ty);    break;
     }
-    delay(120); // einfache Entprellung
+    delay(120); // easy delay
   }
 }
 
 // ====================================================================
-//  HOME SCREEN
+//  home screenn!!!
 // ====================================================================
 void drawHomeScreen() {
   tft.fillScreen(BG_COLOR);
@@ -133,7 +133,7 @@ void drawHomeScreen() {
   tft.setTextSize(2);
   tft.drawCentreString("CYD HOME", 120, 12, 2);
 
-  // App-Kachel: Notizen
+  // app widget: Notes
   tft.fillRoundRect(30, 70, 180, 90, 8, BUTTON_COLOR);
   tft.drawRoundRect(30, 70, 180, 90, 8, TEXT_COLOR);
   tft.setTextColor(TEXT_COLOR);
@@ -157,7 +157,7 @@ void handleHomeTouch(int x, int y) {
 }
 
 // ====================================================================
-//  NOTIZ-LISTE
+//  notes list
 // ====================================================================
 void refreshNoteFiles() {
   noteFiles.clear();
@@ -174,21 +174,21 @@ void refreshNoteFiles() {
 void drawNoteList() {
   tft.fillScreen(BG_COLOR);
 
-  // Kopfzeile
+  // footheader
   tft.fillRect(0, 0, 240, 40, ACCENT_COLOR);
   tft.setTextColor(TFT_WHITE);
   tft.setTextSize(2);
   tft.drawCentreString("MEINE NOTIZEN", 120, 12, 2);
 
-  // Zurück-Button
+  // back button
   tft.fillRoundRect(5, 5, 30, 30, 4, WARNING_COLOR);
   tft.drawCentreString("<", 20, 12, 2);
 
-  // Neue Notiz Button
+  // new notes button
   tft.fillRoundRect(195, 5, 40, 30, 4, SUCCESS_COLOR);
   tft.drawCentreString("+", 215, 10, 2);
 
-  // Liste
+  // lists
   int y = 50;
   int shown = 0;
   for (int i = listScrollOffset; i < (int)noteFiles.size() && shown < LIST_VISIBLE; i++) {
@@ -200,7 +200,7 @@ void drawNoteList() {
     tft.setCursor(18, y + 9);
     tft.print(name);
 
-    // Lösch-Symbol
+    // delete symbols
     tft.fillRoundRect(190, y + 3, 22, 22, 3, WARNING_COLOR);
     tft.drawCentreString("X", 201, y + 7, 1);
 
@@ -214,20 +214,20 @@ void drawNoteList() {
     tft.drawCentreString("Noch keine Notizen - tippe [+]", 120, 150, 1);
   }
 
-  // Scroll Buttons
+  // scrolling buttons
   tft.fillTriangle(225, 60, 215, 50, 235, 50, BUTTON_COLOR);
   tft.fillTriangle(225, 300, 215, 290, 235, 290, BUTTON_COLOR);
 }
 
 void handleNoteListTouch(int x, int y) {
-  // Zurück
+  // back
   if (x < 35 && y < 35) {
     currentScreen = SCREEN_HOME;
     drawHomeScreen();
     return;
   }
 
-  // Neue Notiz
+  // new notes
   if (x > 195 && y < 35) {
     editingFile  = "note_" + String(millis()) + ".txt";
     editingText  = "";
@@ -237,13 +237,13 @@ void handleNoteListTouch(int x, int y) {
     return;
   }
 
-  // Scroll oben
+  // scroll up
   if (x > 210 && y > 45 && y < 65 && listScrollOffset > 0) {
     listScrollOffset--;
     drawNoteList();
     return;
   }
-  // Scroll unten
+  // scroll down
   if (x > 210 && y > 285 && y < 305 &&
       listScrollOffset + LIST_VISIBLE < (int)noteFiles.size()) {
     listScrollOffset++;
@@ -251,19 +251,19 @@ void handleNoteListTouch(int x, int y) {
     return;
   }
 
-  // Listeneinträge
+  // list entries
   int yPos = 50;
   int shown = 0;
   for (int i = listScrollOffset; i < (int)noteFiles.size() && shown < LIST_VISIBLE; i++) {
     if (y > yPos && y < yPos + 28) {
       if (x > 188 && x < 214) {
-        // löschen
+        // delete
         deleteNote(noteFiles[i]);
         refreshNoteFiles();
         drawNoteList();
         return;
       } else {
-        // öffnen
+        // open
         editingFile = noteFiles[i];
         File f = SD.open("/notes/" + editingFile, FILE_READ);
         editingText = "";
@@ -287,12 +287,12 @@ void deleteNote(String filename) {
 }
 
 // ====================================================================
-//  NOTIZ-EDITOR (Textbereich + einfache Tastatur)
+//  notes editor- meaning like the keyboard and parts where you draw
 // ====================================================================
 void drawNoteEditor(bool full) {
   if (full) tft.fillScreen(BG_COLOR);
 
-  // Kopfzeile
+  // footheader
   tft.fillRect(0, 0, 240, 32, ACCENT_COLOR);
   tft.setTextColor(TFT_WHITE);
   tft.setTextSize(1);
@@ -302,14 +302,14 @@ void drawNoteEditor(bool full) {
   tft.fillRoundRect(185, 4, 50, 24, 4, SUCCESS_COLOR);
   tft.drawCentreString(editingDirty ? "SPEICHERN" : "GESPEICHERT", 210, 12, 1);
 
-  // Textbereich
+  // text area
   tft.fillRect(0, 32, 240, 130, BG_COLOR);
   tft.drawRect(2, 34, 236, 126, TEXT_COLOR);
   tft.setTextColor(TEXT_COLOR);
   tft.setTextSize(1);
   tft.setCursor(8, 40);
 
-  // einfache Umbruch-Darstellung
+  // simple line breaking!
   String displayText = editingText;
   if (displayText.length() > 400) {
     displayText = displayText.substring(displayText.length() - 400);
@@ -328,7 +328,7 @@ void drawKeyboard() {
   for (int r = 0; r < 3; r++) {
     int len = strlen(rows[r]);
     int keyW = 240 / max(len, 10);
-    int xOff = (r == 1) ? keyW / 2 : 0; // mittlere Reihe leicht eingerückt
+    int xOff = (r == 1) ? keyW / 2 : 0; // middle row
     for (int i = 0; i < len; i++) {
       int x = xOff + i * keyW;
       tft.fillRoundRect(x, rowY, keyW - 2, 30, 3, BUTTON_COLOR);
@@ -339,7 +339,7 @@ void drawKeyboard() {
     rowY += 32;
   }
 
-  // Funktionsreihe: ABC/123 | SPACE | < (Backspace) | ENTER
+  // ABC 123, backspace and enter pads for the keyboard.
   int fy = rowY;
   tft.fillRoundRect(0, fy, 50, 32, 3, (kbMode == 2) ? ACCENT_COLOR : BUTTON_COLOR);
   tft.drawCentreString(kbMode == 2 ? "ABC" : "123", 25, fy + 11, 1);
@@ -358,7 +358,7 @@ void drawKeyboard() {
 }
 
 void handleEditorTouch(int x, int y) {
-  // Zurück
+  // go back
   if (x < 60 && y < 32) {
     if (editingDirty) saveCurrentNote();
     refreshNoteFiles();
@@ -366,15 +366,15 @@ void handleEditorTouch(int x, int y) {
     drawNoteList();
     return;
   }
-  // Speichern Button
+  // button activated saving
   if (x > 180 && y < 32) {
     saveCurrentNote();
     drawNoteEditor(false);
     return;
   }
 
-  // Tastatur
-  if (y < 165) return; // Texttipp-Bereich: kein Cursorpositionieren in dieser Minimalversion
+  // keyboard and such
+  if (y < 165) return; // Texttipp-Bereich: no cursour positioning in typing area
 
   const char** rows = (kbMode == 0) ? kbLower : (kbMode == 1) ? kbUpper : kbNums;
   int rowY = 165;
@@ -429,3 +429,4 @@ void saveCurrentNote() {
     editingDirty = false;
   }
 }
+#LgTm
