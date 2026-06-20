@@ -66,3 +66,8 @@ Außerdem gibt es eine Standard-Notiz-App; sie dient – ​​wie der Name scho
 
 Zudem werden wir die WebUntis-API integrieren. Das bedeutet, dass wir unseren Stundenplan im Blick behalten können, wie hier zu sehen:
 <img width="152" height="331" alt="image" src="https://github.com/user-attachments/assets/d0bbeb3b-e6f9-410e-9eee-232a82c9da0e" />
+
+
+
+
+Von: RominoKowalski, Gartenprofi, gnampfkuchen-oss, WX_79, The_Drop
