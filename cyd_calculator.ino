@@ -872,7 +872,7 @@ void calculator() {
     // Untere Reihe
     {"^", 5, 270, 50, 30, TFT_PURPLE},
     {"1/x", 60, 270, 105, 30, TFT_DARKGREY},
-    {"←", 170, 270, 55, 30, TFT_DARKGREY},
+    {"<--", 170, 270, 55, 30, TFT_DARKGREY},
     
     // Zurück
     {"Zurueck", 5, 330, 230, 25, TFT_RED}
@@ -1012,13 +1012,8 @@ void calculator() {
       input = display + " " + value;
       newNumber = true;
     }
-    else if (value == "←") {
-      if (display.length() > 1) {
-        display = display.substring(0, display.length() - 1);
-      } else {
-        display = "0";
-        newNumber = true;
-      }
+    else if (value == "<--") {
+      return;
     }
     else {
       // Zahlen
