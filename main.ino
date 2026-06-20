@@ -325,7 +325,7 @@ void drawMenu() {
     drawMenuIcon(b.x + 4, b.y + 5, b.label);
     tft.setTextColor(TFT_WHITE, b.color);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString(b.label, b.x + b.w / 2, b.y + b.h - 12, 1);
+    tft.drawString(b.label, b.x + b.w / 2, b.y + b.h - 12, 2);
   }
   tft.drawFastHLine(0, 250, SCREEN_W, BORDER_COLOR);
 }
@@ -1242,12 +1242,9 @@ void chatApp() {
     while (!getTouch(tx, ty)) delay(10);
     drainTouch(); drawMenu(); return;
   }
-  tft.fillScreen(BG_COLOR);
-  tft.setTextColor(TEXT_COLOR, BG_COLOR);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString("Chat", 120, 20, 2);
-  tft.drawString("Verbinde...", 120, 80, 1);
-  String pubkey = "", privkey = "", username = "", groupId = "";
+  String pubkey = "", privkey = "", username = "";
+  HTTPClient http; http.setTimeout(5000);
+  String apiBase = "http://149.102.157.124:3001";
   if (SPIFFS.begin(true)) {
     if (SPIFFS.exists("/chat.json")) {
       File f = SPIFFS.open("/chat.json", FILE_READ);
@@ -1262,201 +1259,646 @@ void chatApp() {
       }
     }
   }
-  HTTPClient http; http.setTimeout(5000);
-  String apiBase = "http://149.102.157.124:3001";
-  if (pubkey == "") {
-    username = "CYD-User-" + String(random(1000, 9999));
-    http.begin(apiBase + "/api/register");
-    http.addHeader("Content-Type", "application/json");
-    String regBody = "{\"username\":\"" + username + "\",\"displayName\":\"" + username + "\"}";
-    int code = http.POST(regBody);
-    if (code == 200 || code == 201) {
-      String resp = http.getString();
-      int pk = resp.indexOf("\"pubkey\":\"");
-      if (pk > 0) pubkey = resp.substring(pk+10, resp.indexOf("\"", pk+10));
-      int pr = resp.indexOf("\"privkey\":\"");
-      if (pr > 0) privkey = resp.substring(pr+11, resp.indexOf("\"", pr+11));
-    }
-    http.end();
-    if (pubkey != "") {
-      SPIFFS.begin(true);
-      File f = SPIFFS.open("/chat.json", FILE_WRITE);
-      if (f) {
-        f.print("{\"username\":\""); f.print(username);
-        f.print("\",\"pubkey\":\""); f.print(pubkey);
-        f.print("\",\"privkey\":\""); f.print(privkey);
-        f.print("\"}");
-        f.close();
-      }
-    }
-  } else {
-    http.begin(apiBase + "/api/login");
-    http.addHeader("Content-Type", "application/json");
-    http.POST("{\"username\":\"" + username + "\"}");
-    http.end();
-  }
-  tft.fillScreen(BG_COLOR);
-  tft.setTextColor(TEXT_COLOR, BG_COLOR);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString("Gruppen...", 120, 20, 2);
-  if (pubkey != "") {
-    http.begin(apiBase + "/api/groups?pubkey=" + pubkey);
-    if (http.GET() == 200) {
-      String gResp = http.getString(); int pos = 0;
-      while (true) {
-        int si = gResp.indexOf("\"id\":\"", pos);
-        if (si < 0) break;
-        String gid = gResp.substring(si+6); gid = gid.substring(0, gid.indexOf("\""));
-        int sn = gResp.indexOf("\"name\":\"", si);
-        if (sn > 0) {
-          String gn = gResp.substring(sn+8); gn = gn.substring(0, gn.indexOf("\""));
-          if (gn == "CYD-Chat") { groupId = gid; break; }
+  int state = (pubkey == "") ? -1 : 0;
+  String dmTarget = "", currentGroupId = "", currentGroupName = "";
+  while (true) {
+    if (state == -1) {
+      tft.fillScreen(BG_COLOR);
+      tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
+      tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("CHAT LOGIN", 120, 14, 2);
+      drawButton(30, 60, 180, 40, TFT_GREEN, "REGISTRIEREN");
+      drawButton(30, 120, 180, 40, TFT_BLUE, "LOGIN");
+      drawButton(30, 200, 180, 30, TFT_RED, "Zurueck");
+      int tx, ty;
+      while (!getTouch(tx, ty)) delay(10);
+      drainTouch();
+      if (isButtonPressed(tx, ty, 30, 60, 180, 40)) {
+        username = virtualKeyboardInput("Neuer Benutzername:", "", 30);
+        username.trim(); if (username == "") continue;
+        tft.fillScreen(BG_COLOR);
+        tft.setTextColor(TEXT_COLOR, BG_COLOR);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Registriere...", 120, 100, 2);
+        http.begin(apiBase + "/api/register");
+        http.addHeader("Content-Type", "application/json");
+        int code = http.POST("{\"username\":\"" + username + "\",\"displayName\":\"" + username + "\"}");
+        if (code == 200 || code == 201) {
+          String resp = http.getString();
+          int pk = resp.indexOf("\"pubkey\":\"");
+          if (pk > 0) pubkey = resp.substring(pk+10, resp.indexOf("\"", pk+10));
+          int pr = resp.indexOf("\"privkey\":\"");
+          if (pr > 0) privkey = resp.substring(pr+11, resp.indexOf("\"", pr+11));
         }
-        pos = si + 1;
+        http.end();
+        if (pubkey != "") {
+          File f = SPIFFS.open("/chat.json", FILE_WRITE);
+          if (f) { f.print("{\"username\":\"" + username + "\",\"pubkey\":\"" + pubkey + "\",\"privkey\":\"" + privkey + "\"}"); f.close(); }
+          state = 0;
+        } else {
+          tft.fillScreen(BG_COLOR);
+          tft.setTextColor(TFT_RED, BG_COLOR);
+          tft.drawString("Fehler bei Registrierung", 120, 100, 2);
+          tft.drawString("Tippen zum Zurueck", 120, 140, 1);
+          while (!getTouch(tx, ty)) delay(10);
+          drainTouch(); drawMenu(); return;
+        }
+      } else if (isButtonPressed(tx, ty, 30, 120, 180, 40)) {
+        username = virtualKeyboardInput("Dein Benutzername:", "", 30);
+        username.trim(); if (username == "") continue;
+        tft.fillScreen(BG_COLOR);
+        tft.setTextColor(TEXT_COLOR, BG_COLOR);
+        tft.drawString("Logge ein...", 120, 100, 2);
+        http.begin(apiBase + "/api/login");
+        http.addHeader("Content-Type", "application/json");
+        int code = http.POST("{\"username\":\"" + username + "\"}");
+        if (code == 200) {
+          String resp = http.getString();
+          int pk = resp.indexOf("\"pubkey\":\"");
+          if (pk > 0) pubkey = resp.substring(pk+10, resp.indexOf("\"", pk+10));
+          int pr = resp.indexOf("\"privkey\":\"");
+          if (pr > 0) privkey = resp.substring(pr+11, resp.indexOf("\"", pr+11));
+        }
+        http.end();
+        if (pubkey != "") {
+          File f = SPIFFS.open("/chat.json", FILE_WRITE);
+          if (f) { f.print("{\"username\":\"" + username + "\",\"pubkey\":\"" + pubkey + "\",\"privkey\":\"" + privkey + "\"}"); f.close(); }
+          state = 0;
+        } else {
+          tft.fillScreen(BG_COLOR);
+          tft.setTextColor(TFT_RED, BG_COLOR);
+          tft.drawString("Benutzer nicht gefunden", 120, 100, 2);
+          tft.drawString("Tippen zum Zurueck", 120, 140, 1);
+          while (!getTouch(tx, ty)) delay(10);
+          drainTouch(); drawMenu(); return;
+        }
+      } else if (isButtonPressed(tx, ty, 30, 200, 180, 30)) {
+        drainTouch(); drawMenu(); return;
       }
-    }
-    http.end();
-    if (groupId == "") {
-      http.begin(apiBase + "/api/groups");
-      http.addHeader("Content-Type", "application/json");
-      int gcode = http.POST("{\"name\":\"CYD-Chat\",\"ownerPubkey\":\"" + pubkey + "\"}");
-      if (gcode == 200 || gcode == 201) {
-        String gResp = http.getString();
-        int si = gResp.indexOf("\"id\":\"");
-        if (si > 0) { groupId = gResp.substring(si+6); groupId = groupId.substring(0, groupId.indexOf("\"")); }
+      delay(150);
+    } else if (state == 0) {
+      tft.fillScreen(BG_COLOR);
+      tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
+      tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("CHAT: " + username, 120, 14, 2);
+      drawButton(20, 45, 200, 35, TFT_CYAN, "Private Nachricht");
+      drawButton(20, 90, 200, 35, TFT_GREEN, "Gruppenchat");
+      drawButton(20, 190, 90, 30, TFT_RED, "Logout");
+      drawButton(130, 190, 100, 30, TFT_DARKGREY, "Zurueck");
+      int tx, ty;
+      while (!getTouch(tx, ty)) delay(10);
+      drainTouch();
+      if (isButtonPressed(tx, ty, 20, 45, 200, 35)) state = 1;
+      else if (isButtonPressed(tx, ty, 20, 90, 200, 35)) state = 2;
+      else if (isButtonPressed(tx, ty, 20, 190, 90, 30)) { pubkey = ""; privkey = ""; username = ""; SPIFFS.remove("/chat.json"); state = -1; }
+      else if (isButtonPressed(tx, ty, 130, 190, 100, 30)) { drainTouch(); drawMenu(); return; }
+      delay(150);
+    } else if (state == 1) {
+      std::vector<String> users;
+      tft.fillScreen(BG_COLOR);
+      tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
+      tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("BENUTZER", 120, 14, 2);
+      tft.fillRoundRect(180, 2, 55, 24, 3, TFT_RED);
+      tft.setTextColor(TFT_WHITE, TFT_RED);
+      tft.drawString("Zurueck", 207, 14, 1);
+      http.begin(apiBase + "/api/users");
+      if (http.GET() == 200) {
+        String resp = http.getString(); int pos = 0;
+        while (true) {
+          int un = resp.indexOf("\"username\":\"", pos);
+          if (un < 0) break;
+          String u = resp.substring(un+11); u = u.substring(0, u.indexOf("\""));
+          if (u != username) users.push_back(u);
+          pos = un + 1;
+        }
       }
       http.end();
-    }
-  }
-  if (groupId == "") {
-    tft.setTextColor(TFT_RED, BG_COLOR);
-    tft.drawString("Keine Verbindung", 120, 80, 2);
-    tft.drawString("Tippen zum Zurueck", 120, 120, 1);
-    int tx, ty;
-    while (!getTouch(tx, ty)) delay(10);
-    drainTouch(); drawMenu(); return;
-  }
-  std::vector<String> messages;
-  String chatInput = "";
-  int kbMode = 0;
-  unsigned long lastPoll = 0;
-  auto fetchMessages = [&]() {
-    http.begin(apiBase + "/api/messages?groupId=" + groupId);
-    if (http.GET() == 200) {
-      String mResp = http.getString(); messages.clear(); int pos = 0;
+      int scroll = 0;
       while (true) {
-        int sc = mResp.indexOf("\"content\":\"", pos);
-        if (sc < 0) break;
-        String ct = mResp.substring(sc+11); ct = ct.substring(0, ct.indexOf("\"")); messages.push_back(ct); pos = sc + 1;
+        tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 30, BG_COLOR);
+        int n = min((int)users.size() - scroll, 6);
+        for (int i = 0; i < n; i++) {
+          int y = 34 + i * 36;
+          tft.fillRoundRect(4, y, 232, 32, 4, PANEL_COLOR);
+          tft.setTextColor(TEXT_COLOR, PANEL_COLOR);
+          tft.setTextDatum(TL_DATUM);
+          tft.setCursor(12, y + 8);
+          tft.print(users[scroll + i]);
+        }
+        if (scroll > 0) tft.fillTriangle(120, 252, 110, 262, 130, 262, TFT_LIGHTGREY);
+        if (scroll + 6 < (int)users.size()) tft.fillTriangle(120, 250, 110, 240, 130, 240, TFT_LIGHTGREY);
+        int tx, ty;
+        while (!getTouch(tx, ty)) delay(10);
+        if (ty < 28 && tx > 175) { drainTouch(); state = 0; break; }
+        if (ty >= 34 && ty < 34 + 6 * 36) {
+          int idx = scroll + (ty - 34) / 36;
+          if (idx < (int)users.size()) { dmTarget = users[idx]; state = 3; break; }
+        }
+        if (ty >= 245 && ty < 265) {
+          int c = 120;
+          if (tx > c - 10 && tx < c + 10) {
+            if (ty < 255 && scroll + 6 < (int)users.size()) scroll++;
+            else if (ty >= 255 && scroll > 0) scroll--;
+          }
+        }
+        delay(130);
       }
-    }
-    http.end();
-  };
-  fetchMessages();
-  while (true) {
-    tft.fillScreen(BG_COLOR);
-    tft.fillRect(0, 0, 240, 24, HEADER_COLOR);
-    tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("CHAT", 120, 12, 1);
-    tft.fillRoundRect(200, 2, 35, 20, 3, TFT_RED);
-    tft.setTextColor(TFT_WHITE, TFT_RED);
-    tft.drawString("X", 217, 12, 1);
-    tft.setTextColor(TEXT_COLOR, BG_COLOR);
-    tft.setTextDatum(TL_DATUM);
-    int my = 28;
-    int start = max(0, (int)messages.size() - 8);
-    for (int i = start; i < (int)messages.size() && my < 155; i++) {
-      tft.setCursor(4, my);
-      String m = messages[i]; if (m.length() > 32) m = m.substring(0, 32);
-      tft.print(m); my += 14;
-    }
-    drawKeyboard(kbMode, 165);
-    tft.fillRect(0, 156, 240, 9, BG_COLOR);
-    tft.setTextColor(TFT_CYAN, BG_COLOR);
-    tft.setTextDatum(TL_DATUM); tft.setCursor(4, 157);
-    String shownInput = chatInput;
-    if (shownInput.length() > 38) shownInput = shownInput.substring(shownInput.length() - 38);
-    tft.print(">" + shownInput);
-    int tx, ty;
-    if (!getTouch(tx, ty)) {
-      if (millis() - lastPoll > 5000) { fetchMessages(); lastPoll = millis(); }
-      delay(10); continue;
-    }
-    if (ty < 24 && tx > 195) { drainTouch(); drawMenu(); return; }
-    if (ty >= 165) {
-      int res = handleKeyboardTouch(tx, ty, chatInput, kbMode, 165);
-      if (res == 2 && chatInput.length() > 0) {
-        chatInput.replace("\\", "\\\\"); chatInput.replace("\"", "\\\"");
-        http.begin(apiBase + "/api/messages");
+    } else if (state == 2) {
+      struct GEntry { String id, name; };
+      std::vector<GEntry> groups;
+      tft.fillScreen(BG_COLOR);
+      tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
+      tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("GRUPPEN", 120, 14, 2);
+      tft.fillRoundRect(2, 2, 45, 24, 3, TFT_RED);
+      tft.setTextColor(TFT_WHITE, TFT_RED);
+      tft.drawString("<", 24, 14, 2);
+      tft.fillRoundRect(190, 2, 45, 24, 3, TFT_GREEN);
+      tft.setTextColor(TFT_WHITE, TFT_GREEN);
+      tft.drawString("+", 212, 14, 2);
+      http.begin(apiBase + "/api/groups?pubkey=" + pubkey);
+      if (http.GET() == 200) {
+        String resp = http.getString(); int pos = 0;
+        while (true) {
+          int si = resp.indexOf("\"id\":\"", pos);
+          if (si < 0) break;
+          String gid = resp.substring(si+6); gid = gid.substring(0, gid.indexOf("\""));
+          int sn = resp.indexOf("\"name\":\"", si);
+          if (sn > 0) {
+            String gn = resp.substring(sn+8); gn = gn.substring(0, gn.indexOf("\""));
+            if (!gn.startsWith("DM:")) { GEntry e; e.id = gid; e.name = gn; groups.push_back(e); }
+          }
+          pos = si + 1;
+        }
+      }
+      http.end();
+      int scroll = 0;
+      while (true) {
+        tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 30, BG_COLOR);
+        int n = min((int)groups.size() - scroll, 6);
+        for (int i = 0; i < n; i++) {
+          int y = 34 + i * 36;
+          tft.fillRoundRect(4, y, 232, 32, 4, PANEL_COLOR);
+          tft.setTextColor(TEXT_COLOR, PANEL_COLOR);
+          tft.setTextDatum(TL_DATUM);
+          tft.setCursor(12, y + 8);
+          tft.print(groups[scroll + i].name);
+        }
+        if (scroll > 0) tft.fillTriangle(120, 252, 110, 262, 130, 262, TFT_LIGHTGREY);
+        if (scroll + 6 < (int)groups.size()) tft.fillTriangle(120, 250, 110, 240, 130, 240, TFT_LIGHTGREY);
+        drawButton(20, 260, 90, 28, TFT_ORANGE, "Beitreten");
+        int tx, ty;
+        while (!getTouch(tx, ty)) delay(10);
+        if (ty < 28) {
+          if (tx > 180) {
+            String gname = virtualKeyboardInput("Gruppenname:", "", 30);
+            gname.trim(); if (gname == "") continue;
+            http.begin(apiBase + "/api/groups");
+            http.addHeader("Content-Type", "application/json");
+            int code = http.POST("{\"name\":\"" + gname + "\",\"ownerPubkey\":\"" + pubkey + "\"}");
+            if (code == 200 || code == 201) {
+              String resp = http.getString();
+              int si = resp.indexOf("\"id\":\"");
+              if (si > 0) { currentGroupId = resp.substring(si+6); currentGroupId = currentGroupId.substring(0, currentGroupId.indexOf("\"")); currentGroupName = gname; http.end(); state = 4; break; }
+            }
+            http.end();
+          } else { drainTouch(); state = 0; break; }
+        }
+        if (ty >= 255) {
+          if (tx < 115) {
+            String gid = virtualKeyboardInput("Gruppen-ID:", "", 36);
+            gid.trim(); if (gid == "") continue;
+            http.begin(apiBase + "/api/groups/" + gid + "/join");
+            http.addHeader("Content-Type", "application/json");
+            http.POST("{\"pubkey\":\"" + pubkey + "\"}");
+            http.end();
+          }
+          delay(150); continue;
+        }
+        if (ty >= 34 && ty < 34 + 6 * 36) {
+          int idx = scroll + (ty - 34) / 36;
+          if (idx < (int)groups.size()) { currentGroupId = groups[idx].id; currentGroupName = groups[idx].name; state = 4; break; }
+        }
+        delay(130);
+      }
+    } else if (state == 3) {
+      String name1 = username, name2 = dmTarget;
+      String dmGN = name1 < name2 ? "DM:" + name1 + "-" + name2 : "DM:" + name2 + "-" + name1;
+      String dmGid = "";
+      http.begin(apiBase + "/api/groups?pubkey=" + pubkey);
+      if (http.GET() == 200) {
+        String resp = http.getString(); int pos = 0;
+        while (true) {
+          int si = resp.indexOf("\"id\":\"", pos);
+          if (si < 0) break;
+          String gid = resp.substring(si+6); gid = gid.substring(0, gid.indexOf("\""));
+          int sn = resp.indexOf("\"name\":\"", si);
+          if (sn > 0) { String gn = resp.substring(sn+8); gn = gn.substring(0, gn.indexOf("\"")); if (gn == dmGN) { dmGid = gid; break; } }
+          pos = si + 1;
+        }
+      }
+      http.end();
+      if (dmGid == "") {
+        tft.fillScreen(BG_COLOR);
+        tft.setTextColor(TFT_YELLOW, BG_COLOR);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Erstelle DM...", 120, 100, 2);
+        http.begin(apiBase + "/api/groups");
         http.addHeader("Content-Type", "application/json");
-        http.POST("{\"groupId\":\"" + groupId + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + chatInput + "\"}");
-        http.end(); chatInput = ""; fetchMessages();
+        int code = http.POST("{\"name\":\"" + dmGN + "\",\"ownerPubkey\":\"" + pubkey + "\"}");
+        if (code == 200 || code == 201) {
+          String resp = http.getString();
+          int si = resp.indexOf("\"id\":\"");
+          if (si > 0) { dmGid = resp.substring(si+6); dmGid = dmGid.substring(0, dmGid.indexOf("\"")); }
+          http.end();
+          if (dmGid != "") {
+            http.begin(apiBase + "/api/users");
+            if (http.GET() == 200) {
+              String uResp = http.getString(); int pos = 0;
+              while (true) {
+                int un = uResp.indexOf("\"username\":\"", pos);
+                if (un < 0) break;
+                String u = uResp.substring(un+11); u = u.substring(0, u.indexOf("\""));
+                int pk = uResp.indexOf("\"pubkey\":\"", un);
+                if (pk > 0) { String pkv = uResp.substring(pk+10); pkv = pkv.substring(0, pkv.indexOf("\"")); if (u == dmTarget) { http.begin(apiBase + "/api/groups/" + dmGid + "/invite"); http.addHeader("Content-Type", "application/json"); http.POST("{\"pubkey\":\"" + pkv + "\"}"); http.end(); break; } }
+                pos = un + 1;
+              }
+            }
+            http.end();
+          }
+        } else { http.end(); }
+      }
+      if (dmGid == "") { state = 1; continue; }
+      currentGroupId = dmGid; currentGroupName = dmTarget; state = 4;
+    } else if (state == 4) {
+      std::vector<String> messages;
+      String chatInput = ""; int kbMode = 0;
+      unsigned long lastPoll = 0; bool dirty = true;
+      auto fetchMessages = [&]() {
+        http.begin(apiBase + "/api/messages?groupId=" + currentGroupId);
+        if (http.GET() == 200) {
+          String mResp = http.getString(); messages.clear(); int pos = 0;
+          while (true) {
+            int sc = mResp.indexOf("\"content\":\"", pos);
+            if (sc < 0) break;
+            String ct = mResp.substring(sc+11); ct = ct.substring(0, ct.indexOf("\"")); messages.push_back(ct);
+            pos = sc + 1;
+          }
+        }
+        http.end();
+      };
+      fetchMessages(); dirty = true;
+      while (true) {
+        if (dirty) {
+          tft.fillScreen(BG_COLOR);
+          tft.fillRect(0, 0, 240, 28, HEADER_COLOR);
+          tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+          tft.setTextDatum(TL_DATUM);
+          tft.setCursor(4, 8);
+          String h = currentGroupName; if (h.length() > 16) h = h.substring(0, 15) + "~";
+          tft.print(h);
+          tft.fillRoundRect(178, 2, 28, 24, 3, TFT_RED);
+          tft.setTextColor(TFT_WHITE, TFT_RED);
+          tft.setTextDatum(MC_DATUM);
+          tft.drawString("X", 192, 14, 1);
+          tft.fillRoundRect(208, 2, 28, 24, 3, TFT_ORANGE);
+          tft.setTextColor(TFT_WHITE, TFT_ORANGE);
+          tft.drawString("+", 222, 14, 1);
+          tft.setTextColor(TEXT_COLOR, BG_COLOR);
+          tft.setTextDatum(TL_DATUM);
+          int my = 30, start = max(0, (int)messages.size() - 7);
+          for (int i = start; i < (int)messages.size() && my < 158; i++) {
+            tft.setCursor(4, my);
+            String m = messages[i];
+            int colon = m.indexOf(':');
+            if (colon > 0 && colon < 15) {
+              String snd = m.substring(0, colon);
+              String rst = m.substring(colon + 1);
+              tft.setTextColor(TFT_YELLOW, BG_COLOR); tft.print(snd + ":");
+              tft.setTextColor(TEXT_COLOR, BG_COLOR);
+              if (rst.length() > 28) rst = rst.substring(0, 28);
+              tft.print(rst);
+            } else {
+              if (m.length() > 34) m = m.substring(0, 34);
+              tft.setTextColor(TEXT_COLOR, BG_COLOR);
+              tft.print(m);
+            }
+            my += 16;
+          }
+          tft.fillRect(0, 156, 240, 10, BG_COLOR);
+          tft.setTextColor(TFT_CYAN, BG_COLOR);
+          tft.setTextDatum(TL_DATUM); tft.setCursor(4, 158);
+          String si = chatInput;
+          if (si.length() > 38) si = si.substring(si.length() - 38);
+          tft.print(">" + si);
+          drawKeyboard(kbMode, 165);
+          dirty = false;
+        }
+        int tx, ty;
+        if (!getTouch(tx, ty)) {
+          if (millis() - lastPoll > 3000) {
+            int oldSz = messages.size();
+            fetchMessages();
+            if ((int)messages.size() != oldSz) dirty = true;
+            lastPoll = millis();
+          }
+          delay(10); continue;
+        }
+        if (ty < 28) {
+          if (tx > 200) {
+            String target = virtualKeyboardInput("Benutzer einladen:", "", 30);
+            target.trim(); if (target == "") { dirty = true; delay(150); continue; }
+            http.begin(apiBase + "/api/users");
+            if (http.GET() == 200) {
+              String uResp = http.getString(); int pos = 0;
+              while (true) {
+                int un = uResp.indexOf("\"username\":\"", pos);
+                if (un < 0) break;
+                String u = uResp.substring(un+11); u = u.substring(0, u.indexOf("\""));
+                int pk = uResp.indexOf("\"pubkey\":\"", un);
+                if (pk > 0) { String pkv = uResp.substring(pk+10); pkv = pkv.substring(0, pkv.indexOf("\"")); if (u == target) { http.begin(apiBase + "/api/groups/" + currentGroupId + "/invite"); http.addHeader("Content-Type", "application/json"); http.POST("{\"pubkey\":\"" + pkv + "\"}"); http.end(); break; } }
+                pos = un + 1;
+              }
+            }
+            http.end();
+            dirty = true;
+          } else if (tx > 170) { drainTouch(); state = 0; break; }
+          delay(150); continue;
+        }
+        if (ty >= 165) {
+          int res = handleKeyboardTouch(tx, ty, chatInput, kbMode, 165);
+          if (res == 2 && chatInput.length() > 0) {
+            chatInput.replace("\\", "\\\\"); chatInput.replace("\"", "\\\"");
+            http.begin(apiBase + "/api/messages");
+            http.addHeader("Content-Type", "application/json");
+            http.POST("{\"groupId\":\"" + currentGroupId + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + username + ":" + chatInput + "\"}");
+            http.end(); chatInput = ""; fetchMessages(); dirty = true;
+          } else if (res == 1) dirty = true;
+        }
+        delay(130);
       }
     }
-    delay(130);
+    delay(10);
   }
 }
 
 // ================= STUNDENPLAN APP =================
-// Zeigt eine .txt-Datei namens /stundenplan.txt an.
-// Format: Eine Zeile pro Stunde, z.B.:
-//   08:00 Mathe   Zimmer 101
-//   09:45 Deutsch Zimmer 202
-// Es koennen auch Markdown-Ueberschriften (# Mo, ## Di, ...) genutzt werden.
-// Die Datei kann direkt auf der SD-Karte erstellt/bearbeitet werden
-// oder ueber den Datei-Manager in den Einstellungen.
+// Ruft WebUntis-Timetable ueber API ab und zeigt einen Tag mit Navigation.
+
+String extractField(String json, String key) {
+  int k = json.indexOf("\"" + key + "\":");
+  if (k < 0) return "";
+  k += key.length() + 4;
+  while (k < (int)json.length() && json[k] == ' ') k++;
+  if (k >= (int)json.length()) return "";
+  if (json[k] == '"') {
+    k++; String r = "";
+    while (k < (int)json.length() && json[k] != '"') { if (json[k] == '\\') { k++; if (k < (int)json.length()) r += json[k]; } else r += json[k]; k++; }
+    return r;
+  } else if (json[k] == '{') {
+    int n = json.indexOf("\"name\":\"", k);
+    if (n < 0) return "";
+    n += 8; String r = "";
+    while (n < (int)json.length() && json[n] != '"') r += json[n++];
+    return r;
+  } else {
+    String r = "";
+    while (k < (int)json.length() && json[k] >= '0' && json[k] <= '9') { r += json[k]; k++; }
+    return r;
+  }
+}
 
 void stundenplanApp() {
   drainTouch();
-  const String SP_PATH = "/stundenplan.txt";
-
-  tft.fillScreen(BG_COLOR);
-  tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
-  tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString("STUNDENPLAN", 120, 14, 2);
-
-  if (!sdReady) {
+  ensureWiFi();
+  if (WiFi.status() != WL_CONNECTED) {
+    tft.fillScreen(BG_COLOR);
     tft.setTextColor(TFT_RED, BG_COLOR);
-    tft.drawString("SD-Karte nicht", 120, 100, 2);
-    tft.drawString("verfuegbar!", 120, 130, 2);
-    delay(2000); drawMenu(); return;
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("Kein WLAN - Stundentabelle", 120, 100, 2);
+    tft.drawString("nicht verfuegbar", 120, 130, 2);
+    tft.drawString("Tippen zum Zurueck", 120, 170, 1);
+    int tx, ty;
+    while (!getTouch(tx, ty)) delay(10);
+    drainTouch(); drawMenu(); return;
   }
+  HTTPClient http; http.setTimeout(10000);
+  String apiBase = "http://149.102.157.124:3001";
+  struct tm timeinfo;
+  bool hasTime = useWiFiTime && getLocalTime(&timeinfo);
+  int curYear = 2026, curMon = 6, curDay = 15, curWDay = 1;
+  if (hasTime) {
+    curYear = timeinfo.tm_year + 1900; curMon = timeinfo.tm_mon + 1;
+    curDay = timeinfo.tm_mday; curWDay = timeinfo.tm_wday;
+    if (curWDay == 0) curWDay = 7;
+  }
+  struct Period { String subject, start, end, teacher, room; };
+  std::vector<Period> weekDays[7];
+  int cachedMonY = 0, cachedMonM = 0, cachedMonD = 0;
+  int viewDayOffset = curWDay - 1;
+  if (viewDayOffset > 6) viewDayOffset = 0;
 
-  if (!SD.exists(SP_PATH)) {
-    // Beispiel-Stundenplan erstellen
-    File f = SD.open(SP_PATH, FILE_WRITE);
-    if (f) {
-      f.println("# Montag");
-      f.println("08:00 Mathe         Raum 101");
-      f.println("09:45 Deutsch       Raum 205");
-      f.println("11:30 Englisch      Raum 103");
-      f.println("13:15 Sport         Halle");
-      f.println("# Dienstag");
-      f.println("08:00 Physik        Raum 301");
-      f.println("09:45 Geschichte    Raum 108");
-      f.println("11:30 Kunst         Raum 402");
-      f.println("# Mittwoch");
-      f.println("08:00 Chemie        Labor");
-      f.println("09:45 Mathe         Raum 101");
-      f.println("# Donnerstag");
-      f.println("08:00 Bio           Labor");
-      f.println("09:45 Informatik    PC-Raum");
-      f.println("11:30 Musik         Raum 204");
-      f.println("# Freitag");
-      f.println("08:00 Deutsch       Raum 205");
-      f.println("09:45 Englisch      Raum 103");
-      f.close();
+  auto fetchWeek = [&](int y, int m, int d) -> bool {
+    for (int i = 0; i < 7; i++) weekDays[i].clear();
+    cachedMonY = y; cachedMonM = m; cachedMonD = d;
+    int endY = y, endM = m, endD = d + 6;
+    int dim[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+    if ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0) dim[1] = 29;
+    if (endD > dim[endM - 1]) { endD -= dim[endM - 1]; endM++; if (endM > 12) { endM = 1; endY++; } }
+    char url[120];
+    snprintf(url, sizeof(url), "%s/webuntis/timetable?start=%04d-%02d-%02d&end=%04d-%02d-%02d", apiBase.c_str(), y, m, d, endY, endM, endD);
+    http.begin(url);
+    if (http.GET() != 200) { http.end(); return false; }
+    String resp = http.getString(); http.end();
+    int weekDates[7];
+    for (int i = 0; i < 7; i++) {
+      int cy = y, cm = m, cd = d + i;
+      if (cd > dim[cm - 1]) { cd -= dim[cm - 1]; cm++; if (cm > 12) { cm = 1; cy++; } }
+      weekDates[i] = cy * 10000 + cm * 100 + cd;
     }
-    tft.setTextColor(TFT_YELLOW, BG_COLOR);
-    tft.drawString("Beispiel-Plan erstellt!", 120, 80, 2);
-    tft.drawString("Bearbeite /stundenplan.txt", 120, 110, 1);
-    tft.drawString("auf der SD-Karte.", 120, 130, 1);
-    delay(2500);
-  }
+    int pp = resp.indexOf("\"periods\":");
+    if (pp < 0) return false;
+    pp = resp.indexOf('[', pp);
+    if (pp < 0) return false;
+    int depth = 1, ep = pp + 1;
+    while (depth > 0 && ep < (int)resp.length()) {
+      if (resp[ep] == '[') depth++;
+      else if (resp[ep] == ']') depth--;
+      ep++;
+    }
+    String arr = resp.substring(pp, ep);
+    int pos = 0;
+    while (true) {
+      int ob = arr.indexOf('{', pos);
+      int cb = arr.indexOf('}', pos);
+      if (ob < 0 || cb < 0 || cb <= ob) break;
+      String pj = arr.substring(ob, cb + 1);
+      String ds = extractField(pj, "date");
+      int pd = ds.toInt();
+      for (int di = 0; di < 7; di++) {
+        if (pd == weekDates[di]) {
+          Period p;
+          p.subject = extractField(pj, "subject");
+          String st = extractField(pj, "startTime");
+          String et = extractField(pj, "endTime");
+          if (st.length() == 3) st = "0" + st;
+          if (st.length() >= 4) p.start = st.substring(0, 2) + ":" + st.substring(2); else p.start = st;
+          if (et.length() == 3) et = "0" + et;
+          if (et.length() >= 4) p.end = et.substring(0, 2) + ":" + et.substring(2); else p.end = et;
+          p.teacher = extractField(pj, "teacher");
+          p.room = extractField(pj, "room");
+          if (p.subject.length() > 0) weekDays[di].push_back(p);
+          break;
+        }
+      }
+      pos = cb + 1;
+    }
+    return true;
+  };
 
-  showTXTFile(SP_PATH);
+  int mondayDay = curDay - (curWDay - 1);
+  int mondayMon = curMon, mondayYear = curYear;
+  if (mondayDay < 1) { int dim[] = {31,28,31,30,31,30,31,31,30,31,30,31}; mondayMon--; if (mondayMon < 1) { mondayMon = 12; mondayYear--; } mondayDay += dim[mondayMon - 1]; }
+  if (!fetchWeek(mondayYear, mondayMon, mondayDay)) {
+    tft.fillScreen(BG_COLOR);
+    tft.setTextColor(TFT_RED, BG_COLOR);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("Fehler beim Laden", 120, 100, 2);
+    tft.drawString("Tippen zum Zurueck", 120, 140, 1);
+    int tx, ty;
+    while (!getTouch(tx, ty)) delay(10);
+    drainTouch(); drawMenu(); return;
+  }
+  static const char* DOW[] = {"Mo","Di","Mi","Do","Fr","Sa","So"};
+
+  while (true) {
+    int vy = cachedMonY, vm = cachedMonM, vd = cachedMonD + viewDayOffset;
+    int dim[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+    if ((vy % 4 == 0 && vy % 100 != 0) || vy % 400 == 0) dim[1] = 29;
+    if (vd > dim[vm - 1]) { vd -= dim[vm - 1]; vm++; if (vm > 12) { vm = 1; vy++; } }
+    else if (vd < 1) { vm--; if (vm < 1) { vm = 12; vy--; } vd += dim[vm - 1]; }
+    
+    tft.fillScreen(BG_COLOR);
+    tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
+    tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+    tft.setTextDatum(MC_DATUM);
+    char hdr[32]; snprintf(hdr, sizeof(hdr), "%s %02d.%02d.%04d", DOW[viewDayOffset], vd, vm, vy);
+    tft.drawString("STUNDENPLAN", 120, 14, 2);
+    tft.fillRoundRect(180, 2, 55, 24, 3, TFT_RED);
+    tft.setTextColor(TFT_WHITE, TFT_RED);
+    tft.drawString("X", 207, 14, 1);
+    
+    // Day header
+    tft.fillRect(0, 28, SCREEN_W, 22, darkMode ? 0x2104 : TFT_DARKGREY);
+    tft.setTextColor(TFT_WHITE);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(String(hdr), 120, 39, 2);
+
+    // Periods
+    int yPos = 56;
+    tft.setTextColor(TEXT_COLOR, BG_COLOR);
+    tft.setTextDatum(TL_DATUM);
+    auto& periods = weekDays[viewDayOffset];
+    if (periods.empty()) {
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("Keine Stunden", 120, 150, 2);
+    } else {
+      for (int i = 0; i < (int)periods.size() && yPos < 250; i++) {
+        auto& p = periods[i];
+        tft.fillRoundRect(4, yPos, 232, 36, 4, PANEL_COLOR);
+        tft.setTextColor(TFT_WHITE, PANEL_COLOR);
+        tft.setTextDatum(TL_DATUM);
+        tft.setCursor(8, yPos + 2);
+        tft.print(p.start + "-" + p.end);
+        tft.setCursor(70, yPos + 2);
+        tft.setTextColor(TFT_YELLOW, PANEL_COLOR);
+        String subj = p.subject; if (subj.length() > 12) subj = subj.substring(0, 11);
+        tft.print(subj);
+        if (p.room.length() > 0) {
+          tft.setTextColor(TFT_LIGHTGREY, PANEL_COLOR);
+          tft.setCursor(8, yPos + 20);
+          tft.print("Raum: " + p.room);
+        }
+        tft.setTextColor(TFT_CYAN, PANEL_COLOR);
+        tft.setTextDatum(TR_DATUM);
+        tft.drawString(">", 230, yPos + 18, 1);
+        yPos += 40;
+      }
+    }
+    
+    // Bottom navigation
+    int by = SCREEN_H - 34;
+    tft.drawFastHLine(0, by, SCREEN_W, BORDER_COLOR);
+    tft.fillRect(0, by + 1, SCREEN_W, 33, BG_COLOR);
+    tft.fillTriangle(20, by + 24, 30, by + 14, 30, by + 34, TFT_WHITE);
+    tft.setTextColor(TEXT_COLOR, BG_COLOR);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(String(hdr), 120, by + 24, 2);
+    tft.fillTriangle(220, by + 24, 210, by + 14, 210, by + 34, TFT_WHITE);
+    
+    int tx, ty;
+    while (!getTouch(tx, ty)) delay(10);
+    
+    if (ty < 28 && tx > 175) { drainTouch(); drawMenu(); return; }
+    
+    // Bottom bar navigation
+    if (ty >= by) {
+      if (tx < 40) {
+        viewDayOffset--;
+        if (viewDayOffset < 0) {
+          viewDayOffset = 6;
+          mondayDay = cachedMonD - 7;
+          mondayMon = cachedMonM; mondayYear = cachedMonY;
+          if (mondayDay < 1) { mondayMon--; if (mondayMon < 1) { mondayMon = 12; mondayYear--; } mondayDay += dim[mondayMon - 1]; }
+          fetchWeek(mondayYear, mondayMon, mondayDay);
+        }
+        delay(200); continue;
+      } else if (tx > 200) {
+        viewDayOffset++;
+        if (viewDayOffset > 6) {
+          viewDayOffset = 0;
+          mondayDay = cachedMonD + 7;
+          mondayMon = cachedMonM; mondayYear = cachedMonY;
+          int dim2[] = {31,28,31,30,31,30,31,31,30,31,30,31};
+          if ((mondayYear % 4 == 0 && mondayYear % 100 != 0) || mondayYear % 400 == 0) dim2[1] = 29;
+          if (mondayDay > dim2[mondayMon - 1]) { mondayDay -= dim2[mondayMon - 1]; mondayMon++; if (mondayMon > 12) { mondayMon = 1; mondayYear++; } }
+          fetchWeek(mondayYear, mondayMon, mondayDay);
+        }
+        delay(200); continue;
+      }
+    }
+    
+    // Tap period for details
+    if (ty >= 56 && ty < 250 && !periods.empty()) {
+      int idx = (ty - 56) / 40;
+      if (idx < (int)periods.size()) {
+        drainTouch();
+        auto& p = periods[idx];
+        tft.fillScreen(BG_COLOR);
+        tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
+        tft.setTextColor(TFT_YELLOW, HEADER_COLOR);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(String(p.subject), 120, 14, 2);
+        tft.setTextColor(TEXT_COLOR, BG_COLOR);
+        tft.setTextDatum(TL_DATUM);
+        int ly = 50;
+        tft.setCursor(10, ly); tft.print("Zeit: " + p.start + " - " + p.end); ly += 30;
+        if (p.teacher.length() > 0) { tft.setCursor(10, ly); tft.print("Lehrer: " + p.teacher); ly += 30; }
+        if (p.room.length() > 0) { tft.setCursor(10, ly); tft.print("Raum: " + p.room); ly += 30; }
+        tft.setTextColor(TFT_LIGHTGREY, BG_COLOR);
+        tft.setCursor(10, 220);
+        tft.print("Tippen zum Schliessen");
+        while (!getTouch(tx, ty)) delay(10);
+        drainTouch();
+      }
+    }
+    delay(130);
+  }
 }
 
 // ================= DATEI-MANAGER =================
