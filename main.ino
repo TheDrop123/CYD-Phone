@@ -121,7 +121,7 @@ void loadSettings() {
 // ============ OBJECTS ============
 TFT_eSPI tft = TFT_eSPI();
 
-SPIClass touchscreenSPI = SPIClass(HSPI);
+// touch uses default SPI bus with custom pins
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 
 // Forward declarations
@@ -6736,8 +6736,8 @@ void setup() {
   initSD();
   loadSettings();
   applyTheme();
-  touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
-  touchscreen.begin(touchscreenSPI);
+  SPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
+  touchscreen.begin();
   touchscreen.setRotation(2);
   if (useWiFiTime) {
     connectWiFi();
