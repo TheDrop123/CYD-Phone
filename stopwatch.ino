@@ -2934,25 +2934,74 @@ void settingsApp() {
 }
 // ================= STOPPUHR APP =================
 
+// Global timer variables
+unsigned long startTime = 0;
+unsigned long elapsedTime = 0;
+boolean isRunning = false;
+
 void stopwatchApp() {
   tft.fillScreen(BG_COLOR);
-  while(true){
-  int tx,ty;
-  getTouch(tx, ty);
-  drawButton(10, 170, 220, 30, TFT_CYAN, "Start");
+  startTime = 0;
+  elapsedTime = 0;
+  isRunning = false;
+  
+  while(true) {
+    int tx, ty;
+    getTouch(tx, ty);
+    
+    // Draw buttons
+    drawButton(10, 170, 220, 30, TFT_CYAN, "Start");
     drawButton(10, 204, 220, 30, TFT_PURPLE, "Stop");
     drawButton(10, 238, 220, 30, TFT_MAGENTA, "Reset");
-
-     if (isButtonPressed(tx, ty, 10, 170, 220, 30)) {
-      
-      
-
-    } else if (isButtonPressed(tx, ty, 10, 204, 220, 30)) {
-      
-
-    } else if (isButtonPressed(tx, ty, 10, 238, 220, 30)) {
-      
+    
+    // Update elapsed time if timer is running
+    if (isRunning) {
+      elapsedTime = millis() - startTime;
     }
-      
+    
+    // Display timer
+    displayTimer(elapsedTime);
+    
+    // Handle button presses
+    if (isButtonPressed(tx, ty, 10, 170, 220, 30)) {
+      // Start button
+      if (!isRunning) {
+        startTime = millis() - elapsedTime;
+        isRunning = true;
+        delay(200); // Debounce
+      }
+    } 
+    else if (isButtonPressed(tx, ty, 10, 204, 220, 30)) {
+      // Stop button
+      if (isRunning) {
+        isRunning = false;
+        delay(200); // Debounce
+      }
+    } 
+    else if (isButtonPressed(tx, ty, 10, 238, 220, 30)) {
+      // Reset button
+      isRunning = false;
+      startTime = 0;
+      elapsedTime = 0;
+      tft.fillRect(30, 50, 200, 100, BG_COLOR); // Clear timer display
+      delay(200); // Debounce
+    }
   }
+}
+
+// Display the timer on screen
+void displayTimer(unsigned long ms) {
+  unsigned long seconds = (ms / 1000) % 60;
+  unsigned long minutes = (ms / 60000) % 60;
+  unsigned long hours = (ms / 3600000) % 24;
+  
+  // Format time string: HH:MM:SS
+  char timeStr[12];
+  sprintf(timeStr, "%02lu:%02lu:%02lu", hours, minutes, seconds);
+  
+  // Display time
+  tft.setTextSize(4);
+  tft.setTextColor(TFT_WHITE, BG_COLOR);
+  tft.setCursor(60, 80);
+  tft.println(timeStr);
 }
