@@ -2935,6 +2935,10 @@ void settingsApp() {
 // ================= STOPPUHR APP =================
 
 void stopwatchApp() {
+  tft.fillScreen(BG_COLOR);
+  while(true){
+  int tx,ty;
+  getTouch(tx, ty);
   drawButton(10, 170, 220, 30, TFT_CYAN, "Start");
     drawButton(10, 204, 220, 30, TFT_PURPLE, "Stop");
     drawButton(10, 238, 220, 30, TFT_MAGENTA, "Reset");
@@ -2950,5 +2954,5 @@ void stopwatchApp() {
       
     }
       
-
+  }
 }
