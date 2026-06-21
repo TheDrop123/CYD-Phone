@@ -2935,5 +2935,20 @@ void settingsApp() {
 // ================= STOPPUHR APP =================
 
 void stopwatchApp() {
+  drawButton(10, 170, 220, 30, TFT_CYAN, "Start");
+    drawButton(10, 204, 220, 30, TFT_PURPLE, "Stop");
+    drawButton(10, 238, 220, 30, TFT_MAGENTA, "Reset");
+
+     if (isButtonPressed(tx, ty, 10, 170, 220, 30)) {
+      
+      
+
+    } else if (isButtonPressed(tx, ty, 10, 204, 220, 30)) {
+      
+
+    } else if (isButtonPressed(tx, ty, 10, 238, 220, 30)) {
+      
+    }
+      
 
 }
