@@ -33,8 +33,8 @@ bool sdReady = false;
 #define SD_CS 5
 
 // ============ WIFI ============
-const char* WIFI_SSID = "Jugendhackt";
-const char* WIFI_PASS = "Jug-!hackt";
+String WIFI_SSID = "Gota";       // jetzt aenderbar (vorher const char*)
+String WIFI_PASS = "deskjet3650"; // jetzt aenderbar (vorher const char*)
 
 // ============ TIME SETTINGS ============
 const char* NTP_SERVER = "pool.ntp.org";
@@ -93,6 +93,8 @@ void saveSettings() {
   f.printf("wifi=%d\n", useWiFiTime ? 1 : 0);
   f.printf("dark=%d\n", darkMode ? 1 : 0);
   f.printf("gmt=%ld\n", GMT_OFFSET_SEC);
+  f.printf("ssid=%s\n", WIFI_SSID.c_str());
+  f.printf("pass=%s\n", WIFI_PASS.c_str());
   f.close();
   Serial.println("Einstellungen gespeichert");
 }
@@ -108,6 +110,8 @@ void loadSettings() {
     if (line.startsWith("wifi=")) useWiFiTime = line.substring(5).toInt() != 0;
     else if (line.startsWith("dark=")) darkMode  = line.substring(5).toInt() != 0;
     else if (line.startsWith("gmt="))  GMT_OFFSET_SEC = line.substring(4).toInt();
+    else if (line.startsWith("ssid=")) WIFI_SSID = line.substring(5);
+    else if (line.startsWith("pass=")) WIFI_PASS = line.substring(5);
   }
   f.close();
   applyTheme();
@@ -168,7 +172,7 @@ void connectWiFi() {
   tft.setTextColor(TEXT_COLOR, BG_COLOR);
   tft.setTextDatum(MC_DATUM);
   tft.drawString("Verbinde WLAN...", 120, 150, 2);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFi.begin(WIFI_SSID.c_str(), WIFI_PASS.c_str());
   int tries = 0;
   while (WiFi.status() != WL_CONNECTED && tries < 40) { delay(500); tries++; }
   tft.fillScreen(BG_COLOR);
@@ -647,7 +651,7 @@ void showFileSelection() {
 void ensureWiFi() {
   if (!useWiFiTime) return;
   if (WiFi.status() != WL_CONNECTED) {
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    WiFi.begin(WIFI_SSID.c_str(), WIFI_PASS.c_str());
     int tries = 0;
     while (WiFi.status() != WL_CONNECTED && tries < 20) { delay(500); tries++; }
   }
@@ -2241,58 +2245,77 @@ void settingsApp() {
     tft.setTextDatum(MC_DATUM);
     tft.drawString("EINSTELLUNGEN", 120, 14, 2);
 
-    drawButton(10,  38, 220, 34, useWiFiTime ? TFT_GREEN : TFT_RED,
+    drawButton(10, 34, 220, 30, useWiFiTime ? TFT_GREEN : TFT_RED,
                useWiFiTime ? "WiFi/Zeit: AN" : "WiFi/Zeit: AUS");
 
-    drawButton(10,  78, 220, 34, darkMode ? 0x1082 : 0xC618,
+    drawButton(10, 68, 220, 30, darkMode ? 0x1082 : 0xC618,
                darkMode ? "Dark Mode: AN" : "Dark Mode: AUS");
 
+    // Status-Anzeige
     tft.setTextColor(TEXT_COLOR, BG_COLOR);
     tft.setTextDatum(TL_DATUM);
-    tft.setCursor(12, 120);
+    tft.setCursor(12, 104);
     tft.print("WiFi: ");
     tft.setTextColor(WiFi.status() == WL_CONNECTED ? TFT_GREEN : TFT_RED, BG_COLOR);
     tft.print(WiFi.status() == WL_CONNECTED ? "Verbunden" : "Getrennt");
     tft.setTextColor(TEXT_COLOR, BG_COLOR);
-    tft.setCursor(12, 136);
-    tft.print("SD-Karte: ");
+    tft.setCursor(12, 118);
+    tft.print("SD: ");
     tft.setTextColor(sdReady ? TFT_GREEN : TFT_RED, BG_COLOR);
     tft.print(sdReady ? "Bereit" : "Nicht gefunden");
 
-    drawButton(10, 152, 220, 34, GMT_OFFSET_SEC == 7200 ? TFT_ORANGE : TFT_BLUE,
-               GMT_OFFSET_SEC == 7200 ? "Zeitzone: Sommer" : "Zeitzone: Winter");
+    int tzHour = GMT_OFFSET_SEC / 3600;
+    String tzLabel = "Zeitzone: UTC" + String(tzHour >= 0 ? "+" : "") + String(tzHour);
+    drawButton(10, 136, 220, 30, TFT_BLUE, tzLabel);
 
-    drawButton(10, 192, 220, 34, TFT_CYAN,    "WiFi neu verbinden");
-    drawButton(10, 232, 220, 34, TFT_MAGENTA, "SD-Karte neu laden");
+    drawButton(10, 170, 220, 30, TFT_CYAN,    "WiFi neu verbinden");
+    drawButton(10, 204, 220, 30, TFT_PURPLE,  "WLAN-Daten aendern");
+    drawButton(10, 238, 220, 30, TFT_MAGENTA, "SD-Karte neu laden");
     drawButton(10, 272, 100, 34, 0x4208,      "Datei-Manager");
     drawButton(120,272, 110, 34, TFT_RED,     "Zurueck");
 
     int tx, ty;
     while (!getTouch(tx, ty)) delay(10);
 
-    if (isButtonPressed(tx, ty, 10, 38, 220, 34)) {
+    if (isButtonPressed(tx, ty, 10, 34, 220, 30)) {
       useWiFiTime = !useWiFiTime;
       applyTheme();
       if (useWiFiTime) { connectWiFi(); initTime(); }
       else WiFi.disconnect(true);
       saveSettings();
 
-    } else if (isButtonPressed(tx, ty, 10, 78, 220, 34)) {
+    } else if (isButtonPressed(tx, ty, 10, 68, 220, 30)) {
       darkMode = !darkMode;
       applyTheme();
       saveSettings();
 
-    } else if (isButtonPressed(tx, ty, 10, 152, 220, 34)) {
-      GMT_OFFSET_SEC = (GMT_OFFSET_SEC == 7200) ? 3600 : 7200;
-      DAYLIGHT_OFFSET_SEC = 3600;
-      if (useWiFiTime) initTime();
+    } else if (isButtonPressed(tx, ty, 10, 136, 220, 30)) {
+      int tz = GMT_OFFSET_SEC / 3600;
+      tz++;
+      if (tz > 12) tz = -12;
+      GMT_OFFSET_SEC = (long)tz * 3600L;
       saveSettings();
+      if (useWiFiTime) initTime();
 
-    } else if (isButtonPressed(tx, ty, 10, 192, 220, 34)) {
+    } else if (isButtonPressed(tx, ty, 10, 170, 220, 30)) {
       ensureWiFi();
       if (useWiFiTime) connectWiFi();
 
-    } else if (isButtonPressed(tx, ty, 10, 232, 220, 34)) {
+    } else if (isButtonPressed(tx, ty, 10, 204, 220, 30)) {
+      drainTouch();
+      String newSSID = virtualKeyboardInput("WLAN-Name (SSID):", WIFI_SSID, 32);
+      newSSID.trim();
+      if (newSSID.length() > 0) WIFI_SSID = newSSID;
+      String newPass = virtualKeyboardInput("WLAN-Passwort:", WIFI_PASS, 63);
+      WIFI_PASS = newPass;
+      saveSettings();
+      tft.fillScreen(BG_COLOR);
+      tft.setTextColor(TFT_GREEN, BG_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("WLAN-Daten gespeichert", 120, 150, 2);
+      delay(1200);
+
+    } else if (isButtonPressed(tx, ty, 10, 238, 220, 30)) {
       initSD();
 
     } else if (isButtonPressed(tx, ty, 10, 272, 100, 34)) {
