@@ -1594,6 +1594,9 @@ void chatApp() {
       tft.fillRoundRect(190, 2, 45, 24, 3, TFT_CYAN);
       tft.setTextColor(TFT_WHITE, TFT_CYAN);
       tft.drawString("Suche", 212, 14, 1);
+      tft.setTextColor(TEXT_COLOR, BG_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("Lade Benutzer...", 120, 120, 2);
       http.begin(apiBase + "/api/users");
       if (http.GET() == 200) {
         String resp = http.getString(); int pos = 0;
@@ -1615,6 +1618,12 @@ void chatApp() {
       int scroll = 0;
       while (true) {
         tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 60, BG_COLOR);
+        if (userNames.empty()) {
+          tft.setTextColor(TFT_RED, BG_COLOR);
+          tft.setTextDatum(MC_DATUM);
+          tft.drawString("Keine Benutzer gefunden", 120, 130, 2);
+          tft.drawString("WLAN/Server prüfen", 120, 160, 1);
+        }
         int n = min((int)userNames.size() - scroll, 6);
         for (int i = 0; i < n; i++) {
           int y = 34 + i * 36;
@@ -1992,7 +2001,7 @@ void stundenplanApp() {
   int cachedMonY = 0, cachedMonM = 0, cachedMonD = 0;
   int viewDayOffset = curWDay - 1;
   if (viewDayOffset < 0 || viewDayOffset > 6) viewDayOffset = 0;
-  if (viewDayOffset > 4) viewDayOffset = 4;
+  if (viewDayOffset > 4) viewDayOffset = 0;
 
   auto fetchWeek = [&](int y, int m, int d) -> bool {
     for (int i = 0; i < 7; i++) weekDays[i].clear();
@@ -2067,10 +2076,10 @@ void stundenplanApp() {
   }
   static const char* DOW[] = {"Mo","Di","Mi","Do","Fr","Sa","So"};
   
-  // *** NEU in Version 2: Begrenzung auf Schultage (Mo-Fr) ***
   if (viewDayOffset < 0) viewDayOffset = 0;
-  else if (viewDayOffset > 4) viewDayOffset = 4;
+  else if (viewDayOffset > 4) viewDayOffset = 0;
 
+  int periodScroll = 0;
   while (true) {
     int vy = cachedMonY, vm = cachedMonM, vd = cachedMonD + viewDayOffset;
     int dim[] = {31,28,31,30,31,30,31,31,30,31,30,31};
@@ -2096,6 +2105,7 @@ void stundenplanApp() {
 
     // Periods
     int yPos = 56;
+    int maxPeriodY = 245;
     tft.setTextColor(TEXT_COLOR, BG_COLOR);
     tft.setTextDatum(TL_DATUM);
     auto& periods = weekDays[viewDayOffset];
@@ -2103,7 +2113,8 @@ void stundenplanApp() {
       tft.setTextDatum(MC_DATUM);
       tft.drawString("Keine Stunden", 120, 150, 2);
     } else {
-      for (int i = 0; i < (int)periods.size() && yPos < 250; i++) {
+      int maxVis = (maxPeriodY - 56) / 40;
+      for (int i = periodScroll; i < (int)periods.size() && yPos < maxPeriodY; i++) {
         auto& p = periods[i];
         tft.fillRoundRect(4, yPos, 232, 36, 4, PANEL_COLOR);
         tft.setTextColor(TFT_WHITE, PANEL_COLOR);
@@ -2124,8 +2135,21 @@ void stundenplanApp() {
         tft.drawString(">", 230, yPos + 18, 1);
         yPos += 40;
       }
+      if (periodScroll > 0) { tft.fillTriangle(120, 50, 114, 58, 126, 58, TFT_LIGHTGREY); }
+      if (periodScroll + maxVis < (int)periods.size()) { tft.fillTriangle(120, maxPeriodY - 2, 114, maxPeriodY - 10, 126, maxPeriodY - 10, TFT_LIGHTGREY); }
     }
     
+    // Period scroll arrows tap area
+    if (!periods.empty()) {
+      int maxVis = (maxPeriodY - 56) / 40;
+      if (ty >= 48 && ty < 60 && periodScroll > 0 && tx > 100 && tx < 140) {
+        periodScroll = max(0, periodScroll - 1); delay(200); continue;
+      }
+      if (ty >= maxPeriodY - 12 && ty < maxPeriodY + 2 && periodScroll + maxVis < (int)periods.size() && tx > 100 && tx < 140) {
+        periodScroll = min((int)periods.size() - maxVis, periodScroll + 1); delay(200); continue;
+      }
+    }
+
     // Bottom navigation
     int by = SCREEN_H - 34;
     tft.drawFastHLine(0, by, SCREEN_W, BORDER_COLOR);
@@ -2171,9 +2195,10 @@ void stundenplanApp() {
     }
     
     // Tap period for details
-    if (ty >= 56 && ty < 250 && !periods.empty()) {
-      int idx = (ty - 56) / 40;
-      if (idx < (int)periods.size()) {
+    int maxVis = (maxPeriodY - 56) / 40;
+    if (ty >= 56 && ty < maxPeriodY && !periods.empty()) {
+      int idx = periodScroll + (ty - 56) / 40;
+      if (idx >= 0 && idx < (int)periods.size()) {
         drainTouch();
         auto& p = periods[idx];
         tft.fillScreen(BG_COLOR);
