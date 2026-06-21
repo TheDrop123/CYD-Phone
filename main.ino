@@ -340,7 +340,7 @@ void drawMenu() {
     drawMenuIcon(b.x + 4, b.y + 5, b.label);
     tft.setTextColor(TFT_WHITE);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString(b.label, b.x + b.w / 2, b.y + b.h - 12, 3);
+    tft.drawString(b.label, b.x + b.w / 2, b.y + b.h - 12, 2);
   }
   tft.drawFastHLine(0, 250, SCREEN_W, BORDER_COLOR);
 }
