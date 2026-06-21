@@ -2030,181 +2030,58 @@ void chatApp() {
 }
 
 // ================= STUNDENPLAN APP =================
-// Ruft WebUntis-Timetable ueber API ab und zeigt einen Tag mit Navigation.
-
-String extractField(String json, String key) {
-  int k = json.indexOf("\"" + key + "\":");
-  if (k < 0) return "";
-  k += key.length() + 4;
-  while (k < (int)json.length() && json[k] == ' ') k++;
-  if (k >= (int)json.length()) return "";
-  if (json[k] == '"') {
-    k++; String r = "";
-    while (k < (int)json.length() && json[k] != '"') { if (json[k] == '\\') { k++; if (k < (int)json.length()) r += json[k]; } else r += json[k]; k++; }
-    return r;
-  } else if (json[k] == '{') {
-    int n = json.indexOf("\"name\":\"", k);
-    if (n < 0) return "";
-    n += 8; String r = "";
-    while (n < (int)json.length() && json[n] != '"') r += json[n++];
-    return r;
-  } else {
-    String r = "";
-    while (k < (int)json.length() && json[k] >= '0' && json[k] <= '9') { r += json[k]; k++; }
-    return r;
-  }
-}
+// Zeigt einen fake Stundenplan fuer die Woche 22.-26. Juni 2026.
 
 void stundenplanApp() {
-  tft.fillScreen(BG_COLOR);
-  tft.println("HOLE PLAN");
-  drainTouch();
-  ensureWiFi();
-  if (WiFi.status() != WL_CONNECTED) {
-    tft.fillScreen(BG_COLOR);
-    tft.setTextColor(TFT_RED, BG_COLOR);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("Kein WLAN - Stundentabelle", 120, 100, 2);
-    tft.drawString("nicht verfuegbar", 120, 130, 2);
-    tft.drawString("Tippen zum Zurueck", 120, 170, 1);
-    int tx, ty;
-    while (!getTouch(tx, ty)) delay(10);
-    drainTouch(); drawMenu(); return;
-  }
-  HTTPClient http; http.setTimeout(10000);
-  String apiBase = "http://149.102.157.124:3001";
-  struct tm timeinfo;
-  bool hasTime = useWiFiTime && getLocalTime(&timeinfo);
-  int curYear = 2026, curMon = 6, curDay = 15, curWDay = 1;
-  if (hasTime) {
-    curYear = timeinfo.tm_year + 1900; curMon = timeinfo.tm_mon + 1;
-    curDay = timeinfo.tm_mday; curWDay = timeinfo.tm_wday;
-    if (curWDay == 0) curWDay = 7;  // Sonntag = 7
-  }
   struct Period { String subject, start, end, teacher, room; };
   std::vector<Period> weekDays[7];
-  int cachedMonY = 0, cachedMonM = 0, cachedMonD = 0;
-  
-  // viewDayOffset: 0=Montag, 1=Dienstag, 2=Mittwoch, 3=Donnerstag, 4=Freitag
-  int viewDayOffset = curWDay - 1;
-  if (viewDayOffset < 0 || viewDayOffset > 6) viewDayOffset = 0;
-  if (viewDayOffset > 4) viewDayOffset = 0;  // Auf Montag setzen wenn Wochenende
 
-  auto fetchWeek = [&](int y, int m, int d) -> bool {
-    for (int i = 0; i < 7; i++) weekDays[i].clear();
-    cachedMonY = y; cachedMonM = m; cachedMonD = d;
-    int endY = y, endM = m, endD = d + 6;
-    int dim[] = {31,28,31,30,31,30,31,31,30,31,30,31};
-    if ((y % 4 == 0 && y % 100 != 0) || y % 400 == 0) dim[1] = 29;
-    if (endD > dim[endM - 1]) { endD -= dim[endM - 1]; endM++; if (endM > 12) { endM = 1; endY++; } }
-    char url[120];
-    snprintf(url, sizeof(url), "%s/webuntis/timetable?start=%04d-%02d-%02d&end=%04d-%02d-%02d", apiBase.c_str(), y, m, d, endY, endM, endD);
-    http.begin(url);
-    if (http.GET() != 200) { http.end(); return false; }
-    String resp = http.getString(); http.end();
-    int weekDates[7];
-    for (int i = 0; i < 7; i++) {
-      int cy = y, cm = m, cd = d + i;
-      if (cd > dim[cm - 1]) { cd -= dim[cm - 1]; cm++; if (cm > 12) { cm = 1; cy++; } }
-      weekDates[i] = cy * 10000 + cm * 100 + cd;
-    }
-    int pp = resp.indexOf("\"periods\":");
-    if (pp < 0) return false;
-    pp = resp.indexOf('[', pp);
-    if (pp < 0) return false;
-    int depth = 1, ep = pp + 1;
-    while (depth > 0 && ep < (int)resp.length()) {
-      if (resp[ep] == '[') depth++;
-      else if (resp[ep] == ']') depth--;
-      ep++;
-    }
-    String arr = resp.substring(pp, ep);
-    int pos = 0;
-    while (true) {
-      int ob = arr.indexOf('{', pos);
-      int cb = arr.indexOf('}', pos);
-      if (ob < 0 || cb < 0 || cb <= ob) break;
-      String pj = arr.substring(ob, cb + 1);
-      String ds = extractField(pj, "date");
-      int pd = ds.toInt();
-      for (int di = 0; di < 7; di++) {
-        if (pd == weekDates[di]) {
-          Period p;
-          p.subject = extractField(pj, "subject");
-          String st = extractField(pj, "startTime");
-          String et = extractField(pj, "endTime");
-          if (st.length() == 3) st = "0" + st;
-          if (st.length() >= 4) p.start = st.substring(0, 2) + ":" + st.substring(2); else p.start = st;
-          if (et.length() == 3) et = "0" + et;
-          if (et.length() >= 4) p.end = et.substring(0, 2) + ":" + et.substring(2); else p.end = et;
-          p.teacher = extractField(pj, "teacher");
-          p.room = extractField(pj, "room");
-          if (p.subject.length() > 0) weekDays[di].push_back(p);
-          break;
-        }
-      }
-      pos = cb + 1;
-    }
-    return true;
+  static const char* DOW[] = {"Mo","Di","Mi","Do","Fr","Sa","So"};
+
+  auto add = [&](int dow, String subj, String st, String en, String room, String teacher) {
+    Period p; p.subject = subj; p.start = st; p.end = en; p.teacher = teacher; p.room = room;
+    weekDays[dow].push_back(p);
   };
 
-  // Aktuelle Woche berechnen (Montag der aktuellen Woche)
-  int mondayDay = curDay - (curWDay - 1);
-  int mondayMon = curMon, mondayYear = curYear;
-  int dim[] = {31,28,31,30,31,30,31,31,30,31,30,31};
-  if ((mondayYear % 4 == 0 && mondayYear % 100 != 0) || mondayYear % 400 == 0) dim[1] = 29;
-  
-  // Korrektur: Wenn mondayDay < 1, dann ist der Montag im Vormonat
-  while (mondayDay < 1) {
-    mondayMon--;
-    if (mondayMon < 1) {
-      mondayMon = 12;
-      mondayYear--;
-      // Dim-Array für neues Jahr neu berechnen
-      if ((mondayYear % 4 == 0 && mondayYear % 100 != 0) || mondayYear % 400 == 0) dim[1] = 29;
-      else dim[1] = 28;
-    }
-    mondayDay += dim[mondayMon - 1];
-  }
-  
-  if (!fetchWeek(mondayYear, mondayMon, mondayDay)) {
-    tft.fillScreen(BG_COLOR);
-    tft.setTextColor(TFT_RED, BG_COLOR);
-    tft.setTextDatum(MC_DATUM);
-    tft.drawString("Fehler beim Laden", 120, 100, 2);
-    tft.drawString("Tippen zum Zurueck", 120, 140, 1);
-    int tx, ty;
-    while (!getTouch(tx, ty)) delay(10);
-    drainTouch(); drawMenu(); return;
-  }
-  
-  static const char* DOW[] = {"Mo","Di","Mi","Do","Fr","Sa","So"};
-  
-  // Wenn wir uns im Wochenende befinden, automatisch zur nächsten Woche wechseln
-  if (viewDayOffset > 4) {
-    viewDayOffset = 0;  // Montag der nächsten Woche
-    // Nächste Woche berechnen
-    mondayDay += 7;
-    if (mondayDay > dim[mondayMon - 1]) {
-      mondayDay -= dim[mondayMon - 1];
-      mondayMon++;
-      if (mondayMon > 12) {
-        mondayMon = 1;
-        mondayYear++;
-        if ((mondayYear % 4 == 0 && mondayYear % 100 != 0) || mondayYear % 400 == 0) dim[1] = 29;
-        else dim[1] = 28;
-      }
-    }
-    fetchWeek(mondayYear, mondayMon, mondayDay);
-  }
+  // Mo 22.06.
+  add(0, "Deutsch",     "08:00","09:30","M24","Fr. Mueller");
+  add(0, "Mathematik",  "09:50","11:20","A007","Hr. Schmidt");
+  add(0, "WP Literatur","12:05","13:35","A108","Fr. Weber");
 
+  // Di 23.06.
+  add(1, "Sport",       "08:00","09:30","TH 1","Hr. Wagner");
+  add(1, "Biologie",    "09:50","11:20","A002","Fr. Fischer");
+  add(1, "Franzoesisch","12:05","13:35","A007","Fr. Klein");
+  add(1, "Englisch",    "13:50","15:20","A105","Hr. Hoffmann");
+
+  // Mi 24.06.
+  add(2, "Chemie",      "08:00","09:30","M01","Hr. Richter");
+  add(2, "Musik",       "09:50","11:20","M24","Fr. Schulz");
+  add(2, "Sport",       "12:05","13:35","TH 1","Hr. Wagner");
+  add(2, "Physik",      "13:50","15:20","N011","Fr. Koch");
+
+  // Do 25.06.
+  add(3, "WP Geo/En",   "08:00","09:30","M13","Hr. Wolf");
+  add(3, "Politik",     "09:50","11:20","N119","Fr. Braun");
+  add(3, "Deutsch",     "12:05","13:35","M23","Fr. Mueller");
+  add(3, "Geographie",  "13:50","15:20","M12","Hr. Becker");
+
+  // Fr 26.06.
+  add(4, "WP Latein",   "08:00","09:30","A105","Hr. Hartmann");
+  add(4, "Franzoesisch","09:50","11:20","M24","Fr. Klein");
+  add(4, "Mathematik",  "12:05","13:35","A103","Hr. Schmidt");
+  add(4, "Ethik",       "13:50","15:20","A105","Fr. Lang");
+
+  int viewDayOffset = 0;
   int periodScroll = 0;
+
   while (true) {
-    int vy = cachedMonY, vm = cachedMonM, vd = cachedMonD + viewDayOffset;
+    int vd = 22 + viewDayOffset;
+    int vm = 6, vy = 2026;
     int dim2[] = {31,28,31,30,31,30,31,31,30,31,30,31};
     if ((vy % 4 == 0 && vy % 100 != 0) || vy % 400 == 0) dim2[1] = 29;
     if (vd > dim2[vm - 1]) { vd -= dim2[vm - 1]; vm++; if (vm > 12) { vm = 1; vy++; } }
-    
+
     tft.fillScreen(BG_COLOR);
     tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
     tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
@@ -2214,14 +2091,12 @@ void stundenplanApp() {
     tft.fillRoundRect(180, 2, 55, 24, 3, TFT_RED);
     tft.setTextColor(TFT_WHITE, TFT_RED);
     tft.drawString("X", 207, 14, 1);
-    
-    // Day header
+
     tft.fillRect(0, 28, SCREEN_W, 22, darkMode ? 0x2104 : TFT_DARKGREY);
     tft.setTextColor(TFT_WHITE);
     tft.setTextDatum(MC_DATUM);
     tft.drawString(String(hdr), 120, 39, 2);
 
-    // Periods
     int yPos = 56;
     int maxPeriodY = 245;
     tft.setTextColor(TEXT_COLOR, BG_COLOR);
@@ -2256,8 +2131,7 @@ void stundenplanApp() {
       if (periodScroll > 0) { tft.fillTriangle(120, 50, 114, 58, 126, 58, TFT_LIGHTGREY); }
       if (periodScroll + maxVis < (int)periods.size()) { tft.fillTriangle(120, maxPeriodY - 2, 114, maxPeriodY - 10, 126, maxPeriodY - 10, TFT_LIGHTGREY); }
     }
-    
-    // Bottom navigation
+
     int by = SCREEN_H - 34;
     tft.drawFastHLine(0, by, SCREEN_W, BORDER_COLOR);
     tft.fillRect(0, by + 1, SCREEN_W, 33, BG_COLOR);
@@ -2266,13 +2140,12 @@ void stundenplanApp() {
     tft.setTextDatum(MC_DATUM);
     tft.drawString(String(hdr), 120, by + 24, 2);
     tft.fillTriangle(220, by + 24, 210, by + 14, 210, by + 34, TFT_WHITE);
-    
+
     int tx, ty;
     while (!getTouch(tx, ty)) delay(10);
-    
+
     if (ty < 28 && tx > 175) { drainTouch(); drawMenu(); return; }
-    
-    // Period scroll arrows
+
     if (!periods.empty() && ty >= 48 && ty < 245) {
       int maxVis = (maxPeriodY - 56) / 40;
       if (tx > 100 && tx < 140) {
@@ -2280,58 +2153,21 @@ void stundenplanApp() {
         if (ty >= maxPeriodY - 14 && ty < maxPeriodY && periodScroll + maxVis < (int)periods.size()) { periodScroll++; delay(200); continue; }
       }
     }
-    
-    // Bottom bar navigation
+
     if (ty >= by) {
       if (tx < 40) {
-        // Rückwärts blättern - Mo-Fr Begrenzung
         viewDayOffset--;
-        if (viewDayOffset < 0) {
-          // Zur vorherigen Woche (Freitag der Vorwoche)
-          viewDayOffset = 4;
-          // Montag der Vorwoche berechnen
-          mondayDay = cachedMonD - 7;
-          mondayMon = cachedMonM; 
-          mondayYear = cachedMonY;
-          while (mondayDay < 1) {
-            mondayMon--;
-            if (mondayMon < 1) {
-              mondayMon = 12;
-              mondayYear--;
-              if ((mondayYear % 4 == 0 && mondayYear % 100 != 0) || mondayYear % 400 == 0) dim[1] = 29;
-              else dim[1] = 28;
-            }
-            mondayDay += dim[mondayMon - 1];
-          }
-          fetchWeek(mondayYear, mondayMon, mondayDay);
-        }
+        if (viewDayOffset < 0) viewDayOffset = 4;
+        periodScroll = 0;
         delay(200); continue;
       } else if (tx > 200) {
-        // Vorwärts blättern - Mo-Fr Begrenzung
         viewDayOffset++;
-        if (viewDayOffset > 4) {
-          // Zur nächsten Woche (Montag der nächsten Woche)
-          viewDayOffset = 0;
-          mondayDay = cachedMonD + 7;
-          mondayMon = cachedMonM; 
-          mondayYear = cachedMonY;
-          if ((mondayYear % 4 == 0 && mondayYear % 100 != 0) || mondayYear % 400 == 0) dim[1] = 29;
-          else dim[1] = 28;
-          if (mondayDay > dim[mondayMon - 1]) {
-            mondayDay -= dim[mondayMon - 1];
-            mondayMon++;
-            if (mondayMon > 12) {
-              mondayMon = 1;
-              mondayYear++;
-            }
-          }
-          fetchWeek(mondayYear, mondayMon, mondayDay);
-        }
+        if (viewDayOffset > 4) viewDayOffset = 0;
+        periodScroll = 0;
         delay(200); continue;
       }
     }
-    
-    // Tap period for details
+
     int maxVis = (maxPeriodY - 56) / 40;
     if (ty >= 56 && ty < maxPeriodY && !periods.empty()) {
       int idx = periodScroll + (ty - 56) / 40;
@@ -2342,7 +2178,7 @@ void stundenplanApp() {
         tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
         tft.setTextColor(TFT_YELLOW, HEADER_COLOR);
         tft.setTextDatum(MC_DATUM);
-        tft.drawString(String(p.subject), 120, 14, 2);
+        tft.drawString(p.subject, 120, 14, 2);
         tft.setTextColor(TEXT_COLOR, BG_COLOR);
         tft.setTextDatum(TL_DATUM);
         int ly = 50;
@@ -2353,21 +2189,12 @@ void stundenplanApp() {
         tft.setCursor(10, 220);
         tft.print("Tippen zum Schliessen");
         while (!getTouch(tx, ty)) delay(10);
-        drainTouch();
+        drainTouch(); continue;
       }
     }
     delay(130);
   }
 }
-
-// ================= DATEI-MANAGER =================
-// Erreichbar ueber Einstellungen. Ermoeglicht:
-// - Ordner und Dateien browsen
-// - Neue Datei / neuen Ordner erstellen
-// - Datei umbenennen
-// - Datei / Ordner loeschen
-// - Datei verschieben (Ausschneiden + Ziel-Ordner waehlen)
-
 int listDir(String path, std::vector<FMEntry>& entries) {
   entries.clear();
   if (!sdReady) return 0;
