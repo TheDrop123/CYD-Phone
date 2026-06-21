@@ -853,43 +853,4 @@ void zahlenraten(
       TFT_BLUE,
       "-1"
     );
-      if (
-      isButtonPressed(
-        tx, ty,
-        50,
-      50,
-      350,
-      170) {
-      Serial.println("+1");
-    }
-
-    if (
-      isButtonPressed(
-        tx, ty,
-        50,
-      50,
-      350,
-      130)) {
-      Serial.println("+5");
-    }
-
-    if (
-      isButtonPressed(
-        tx, ty,
-        50,
-      50,
-      350,
-      70)) {
-      Serial.println("-5");
-    }
-
-    if (
-      isButtonPressed(
-        tx, ty,
-        50,
-      50,
-      350,
-      10)) {
-      Serial.println("-1");
-    }
 );
