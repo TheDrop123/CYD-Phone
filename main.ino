@@ -1588,9 +1588,12 @@ void chatApp() {
       tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
       tft.setTextDatum(MC_DATUM);
       tft.drawString("BENUTZER", 120, 14, 2);
-      tft.fillRoundRect(180, 2, 55, 24, 3, TFT_RED);
+      tft.fillRoundRect(2, 2, 45, 24, 3, TFT_RED);
       tft.setTextColor(TFT_WHITE, TFT_RED);
-      tft.drawString("Zurueck", 207, 14, 1);
+      tft.drawString("<", 24, 14, 2);
+      tft.fillRoundRect(190, 2, 45, 24, 3, TFT_CYAN);
+      tft.setTextColor(TFT_WHITE, TFT_CYAN);
+      tft.drawString("Suche", 212, 14, 1);
       http.begin(apiBase + "/api/users");
       if (http.GET() == 200) {
         String resp = http.getString(); int pos = 0;
@@ -1611,7 +1614,7 @@ void chatApp() {
       http.end();
       int scroll = 0;
       while (true) {
-        tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 30, BG_COLOR);
+        tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 60, BG_COLOR);
         int n = min((int)userNames.size() - scroll, 6);
         for (int i = 0; i < n; i++) {
           int y = 34 + i * 36;
@@ -1621,11 +1624,43 @@ void chatApp() {
           tft.setCursor(12, y + 8);
           tft.print(userNames[scroll + i]);
         }
-        if (scroll > 0) tft.fillTriangle(120, 252, 110, 262, 130, 262, TFT_LIGHTGREY);
-        if (scroll + 6 < (int)userNames.size()) tft.fillTriangle(120, 250, 110, 240, 130, 240, TFT_LIGHTGREY);
+        int by = SCREEN_H - 52;
+        tft.fillRect(0, by, SCREEN_W, 50, BG_COLOR);
+        tft.drawFastHLine(0, by, SCREEN_W, BORDER_COLOR);
+        tft.fillRoundRect(10, by + 6, 90, 36, 4, TFT_DARKGREY);
+        tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("HOCH", 55, by + 24, 2);
+        tft.fillRoundRect(120, by + 6, 90, 36, 4, TFT_DARKGREY);
+        tft.drawString("RUNTER", 165, by + 24, 2);
         int tx, ty;
         while (!getTouch(tx, ty)) delay(10);
-        if (ty < 28 && tx > 175) { drainTouch(); state = 0; break; }
+        if (ty < 28) {
+          if (tx < 55) { drainTouch(); state = 0; break; }
+          if (tx > 180) {
+            String searchName = virtualKeyboardInput("Benutzername:", "", 30);
+            searchName.trim(); if (searchName == "") continue;
+            for (int i = 0; i < (int)userNames.size(); i++) {
+              if (userNames[i] == searchName) {
+                dmTarget = userNames[i];
+                dmPubkey = (i < (int)userPubkeys.size()) ? userPubkeys[i] : "";
+                isDM = true;
+                state = 4; break;
+              }
+            }
+            if (state != 4) {
+              tft.fillScreen(BG_COLOR);
+              tft.setTextColor(TFT_RED, BG_COLOR);
+              tft.setTextDatum(MC_DATUM);
+              tft.drawString("Benutzer nicht gefunden", 120, 100, 2);
+              tft.drawString("Tippen zum Zurueck", 120, 140, 1);
+              while (!getTouch(tx, ty)) delay(10);
+              drainTouch(); continue;
+            }
+            break;
+          }
+          delay(150); continue;
+        }
         if (ty >= 34 && ty < 34 + 6 * 36) {
           int idx = scroll + (ty - 34) / 36;
           if (idx < (int)userNames.size()) {
@@ -1635,17 +1670,14 @@ void chatApp() {
             state = 4; break;
           }
         }
-        if (ty >= 245 && ty < 265) {
-          int c = 120;
-          if (tx > c - 10 && tx < c + 10) {
-            if (ty < 255 && scroll + 6 < (int)userNames.size()) scroll++;
-            else if (ty >= 255 && scroll > 0) scroll--;
-          }
+        if (ty >= by && ty < by + 50) {
+          if (tx < 115) { if (scroll > 0) scroll--; }
+          else { if (scroll + 6 < (int)userNames.size()) scroll++; }
         }
         delay(130);
       }
     } else if (state == 2) {
-      struct GEntry { String id, name; };
+      struct GEntry { String id, name; bool isPrivate; };
       std::vector<GEntry> groups;
       tft.fillScreen(BG_COLOR);
       tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
@@ -1655,9 +1687,12 @@ void chatApp() {
       tft.fillRoundRect(2, 2, 45, 24, 3, TFT_RED);
       tft.setTextColor(TFT_WHITE, TFT_RED);
       tft.drawString("<", 24, 14, 2);
-      tft.fillRoundRect(190, 2, 45, 24, 3, TFT_GREEN);
+      tft.fillRoundRect(130, 2, 50, 24, 3, TFT_GREEN);
       tft.setTextColor(TFT_WHITE, TFT_GREEN);
-      tft.drawString("+", 212, 14, 2);
+      tft.drawString("+Pub", 155, 14, 1);
+      tft.fillRoundRect(185, 2, 50, 24, 3, TFT_ORANGE);
+      tft.setTextColor(TFT_WHITE, TFT_ORANGE);
+      tft.drawString("+Priv", 210, 14, 1);
       http.begin(apiBase + "/api/groups?pubkey=" + pubkey);
       if (http.GET() == 200) {
         String resp = http.getString(); int pos = 0;
@@ -1668,7 +1703,12 @@ void chatApp() {
           int sn = resp.indexOf("\"name\":\"", si);
           if (sn > 0) {
             String gn = resp.substring(sn+8); gn = gn.substring(0, gn.indexOf("\""));
-            if (!gn.startsWith("DM:")) { GEntry e; e.id = gid; e.name = gn; groups.push_back(e); }
+            if (!gn.startsWith("DM:")) {
+              GEntry e; e.id = gid; e.name = gn;
+              int sp = resp.indexOf("\"pin\":\"", si);
+              e.isPrivate = (sp > 0 && sp < resp.indexOf("}", si));
+              groups.push_back(e);
+            }
           }
           pos = si + 1;
         }
@@ -1676,46 +1716,78 @@ void chatApp() {
       http.end();
       int scroll = 0;
       while (true) {
-        tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 30, BG_COLOR);
+        tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 60, BG_COLOR);
         int n = min((int)groups.size() - scroll, 6);
         for (int i = 0; i < n; i++) {
           int y = 34 + i * 36;
-          tft.fillRoundRect(4, y, 232, 32, 4, PANEL_COLOR);
-          tft.setTextColor(TEXT_COLOR, PANEL_COLOR);
+          tft.fillRoundRect(4, y, 232, 32, 4, groups[scroll + i].isPrivate ? 0x780F : PANEL_COLOR);
+          tft.setTextColor(TEXT_COLOR, groups[scroll + i].isPrivate ? 0x780F : PANEL_COLOR);
           tft.setTextDatum(TL_DATUM);
           tft.setCursor(12, y + 8);
-          tft.print(groups[scroll + i].name);
+          String gn = groups[scroll + i].name;
+          if (groups[scroll + i].isPrivate) gn = "[P] " + gn;
+          tft.print(gn);
         }
-        if (scroll > 0) tft.fillTriangle(120, 252, 110, 262, 130, 262, TFT_LIGHTGREY);
-        if (scroll + 6 < (int)groups.size()) tft.fillTriangle(120, 250, 110, 240, 130, 240, TFT_LIGHTGREY);
-        drawButton(20, 260, 90, 28, TFT_ORANGE, "Beitreten");
+        int by = SCREEN_H - 52;
+        tft.fillRect(0, by, SCREEN_W, 50, BG_COLOR);
+        tft.drawFastHLine(0, by, SCREEN_W, BORDER_COLOR);
+        tft.fillRoundRect(10, by + 6, 90, 36, 4, TFT_DARKGREY);
+        tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("HOCH", 55, by + 24, 2);
+        tft.fillRoundRect(120, by + 6, 110, 36, 4, TFT_ORANGE);
+        tft.drawString("BEITRETEN", 175, by + 24, 2);
         int tx, ty;
         while (!getTouch(tx, ty)) delay(10);
         if (ty < 28) {
-          if (tx > 180) {
+          if (tx < 55) { drainTouch(); state = 0; break; }
+          if (tx > 120) {
+            bool isPrivate = (tx < 185);
             String gname = virtualKeyboardInput("Gruppenname:", "", 30);
             gname.trim(); if (gname == "") continue;
+            String pin = "";
+            if (isPrivate) {
+              pin = virtualKeyboardInput("PIN (0=oeffentlich):", "0", 10);
+              pin.trim(); if (pin == "") pin = "0";
+            }
+            String jsonBody = "{\"name\":\"" + gname + "\",\"ownerPubkey\":\"" + pubkey + "\"";
+            if (isPrivate && pin != "0") jsonBody += ",\"pin\":\"" + pin + "\"";
+            jsonBody += "}";
             http.begin(apiBase + "/api/groups");
             http.addHeader("Content-Type", "application/json");
-            int code = http.POST("{\"name\":\"" + gname + "\",\"ownerPubkey\":\"" + pubkey + "\"}");
+            int code = http.POST(jsonBody);
             if (code == 200 || code == 201) {
               String resp = http.getString();
               int si = resp.indexOf("\"id\":\"");
               if (si > 0) { currentGroupId = resp.substring(si+6); currentGroupId = currentGroupId.substring(0, currentGroupId.indexOf("\"")); currentGroupName = gname; isDM = false; http.end(); state = 4; break; }
             }
             http.end();
-          } else { drainTouch(); state = 0; break; }
+          } else { delay(150); continue; }
         }
-        if (ty >= 255) {
-          if (tx < 115) {
+        if (ty >= by && ty < by + 50) {
+          if (tx < 115) { if (scroll > 0) scroll--; continue; }
+          if (tx >= 115) {
             String gid = virtualKeyboardInput("Gruppen-ID:", "", 36);
             gid.trim(); if (gid == "") continue;
+            String pin2 = virtualKeyboardInput("PIN (0=kein PIN):", "0", 10);
+            pin2.trim(); if (pin2 == "") pin2 = "0";
+            String joinBody = "{\"pubkey\":\"" + pubkey + "\"";
+            if (pin2 != "0") joinBody += ",\"pin\":\"" + pin2 + "\"";
+            joinBody += "}";
             http.begin(apiBase + "/api/groups/" + gid + "/join");
             http.addHeader("Content-Type", "application/json");
-            http.POST("{\"pubkey\":\"" + pubkey + "\"}");
+            int jcode = http.POST(joinBody);
+            if (jcode == 200 || jcode == 201) {
+              String jresp = http.getString();
+              int ji = jresp.indexOf("\"id\":\"");
+              if (ji > 0) { currentGroupId = jresp.substring(ji+6); currentGroupId = currentGroupId.substring(0, currentGroupId.indexOf("\"")); }
+              int jn = jresp.indexOf("\"name\":\"");
+              if (jn > 0) { currentGroupName = jresp.substring(jn+8); currentGroupName = currentGroupName.substring(0, currentGroupName.indexOf("\"")); }
+              isDM = false; http.end(); state = 4; break;
+            }
             http.end();
+            delay(150); continue;
           }
-          delay(150); continue;
         }
         if (ty >= 34 && ty < 34 + 6 * 36) {
           int idx = scroll + (ty - 34) / 36;
@@ -1848,7 +1920,7 @@ void chatApp() {
             http.begin(apiBase + "/api/messages");
             http.addHeader("Content-Type", "application/json");
             if (isDM && dmPubkey != "") {
-              http.POST("{\"recipientPubkey\":\"" + dmPubkey + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + username + ":" + chatInput + "\"}");
+              http.POST("{\"toPubkey\":\"" + dmPubkey + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + username + ":" + chatInput + "\"}");
             } else {
               http.POST("{\"groupId\":\"" + currentGroupId + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + username + ":" + chatInput + "\"}");
             }
@@ -1919,7 +1991,8 @@ void stundenplanApp() {
   std::vector<Period> weekDays[7];
   int cachedMonY = 0, cachedMonM = 0, cachedMonD = 0;
   int viewDayOffset = curWDay - 1;
-  if (viewDayOffset > 6) viewDayOffset = 0;
+  if (viewDayOffset < 0 || viewDayOffset > 6) viewDayOffset = 0;
+  if (viewDayOffset > 4) viewDayOffset = 4;
 
   auto fetchWeek = [&](int y, int m, int d) -> bool {
     for (int i = 0; i < 7; i++) weekDays[i].clear();
