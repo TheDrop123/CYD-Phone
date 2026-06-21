@@ -33,8 +33,8 @@ bool sdReady = false;
 #define SD_CS 5
 
 // ============ WIFI ============
-String WIFI_SSID = "Noah iphone";  // jetzt aenderbar (vorher const char*)
-String WIFI_PASS = "13278965";  // jetzt aenderbar (vorher const char*)
+String WIFI_SSID = "";  // jetzt aenderbar (vorher const char*)
+String WIFI_PASS = "";  // jetzt aenderbar (vorher const char*)
 
 // ============ TIME SETTINGS ============
 const char* NTP_SERVER = "pool.ntp.org";
