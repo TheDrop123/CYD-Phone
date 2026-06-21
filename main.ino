@@ -33,8 +33,8 @@ bool sdReady = false;
 #define SD_CS 5
 
 // ============ WIFI ============
-String WIFI_SSID = "Gota";       // jetzt aenderbar (vorher const char*)
-String WIFI_PASS = "deskjet3650"; // jetzt aenderbar (vorher const char*)
+String WIFI_SSID = "Noah iphone";  // jetzt aenderbar (vorher const char*)
+String WIFI_PASS = "13278965";  // jetzt aenderbar (vorher const char*)
 
 // ============ TIME SETTINGS ============
 const char* NTP_SERVER = "pool.ntp.org";
@@ -43,7 +43,7 @@ int DAYLIGHT_OFFSET_SEC = 3600;
 
 // ============ FEATURE TOGGLES ============
 bool useWiFiTime = false;
-bool darkMode = false;   // Dark Mode: true = dunkel, false = hell
+bool darkMode = false;  // Dark Mode: true = dunkel, false = hell
 
 // ============ GLOBALE STRUCTS ============
 struct FMEntry {
@@ -61,25 +61,25 @@ struct RenderedLine {
 
 // ============ THEME COLORS ============
 // Werden von applyTheme() gesetzt und ueberall verwendet
-uint16_t BG_COLOR      = TFT_BLACK;
-uint16_t TEXT_COLOR    = TFT_WHITE;
-uint16_t PANEL_COLOR   = 0x0841;   // dunkelgrau
-uint16_t HEADER_COLOR  = TFT_DARKGREY;
-uint16_t BORDER_COLOR  = TFT_DARKGREY;
+uint16_t BG_COLOR = TFT_BLACK;
+uint16_t TEXT_COLOR = TFT_WHITE;
+uint16_t PANEL_COLOR = 0x0841;  // dunkelgrau
+uint16_t HEADER_COLOR = TFT_DARKGREY;
+uint16_t BORDER_COLOR = TFT_DARKGREY;
 
 void applyTheme() {
   if (darkMode) {
-    BG_COLOR    = TFT_BLACK;
-    TEXT_COLOR  = TFT_WHITE;
+    BG_COLOR = TFT_BLACK;
+    TEXT_COLOR = TFT_WHITE;
     PANEL_COLOR = 0x1082;
-    HEADER_COLOR= 0x2104;
-    BORDER_COLOR= TFT_DARKGREY;
+    HEADER_COLOR = 0x2104;
+    BORDER_COLOR = TFT_DARKGREY;
   } else {
-    BG_COLOR    = 0xFFFF;   // weiss
-    TEXT_COLOR  = TFT_BLACK;
+    BG_COLOR = 0xFFFF;  // weiss
+    TEXT_COLOR = TFT_BLACK;
     PANEL_COLOR = 0xC618;   // hellgrau
-    HEADER_COLOR= 0x8410;   // mittelgrau
-    BORDER_COLOR= 0x8410;
+    HEADER_COLOR = 0x8410;  // mittelgrau
+    BORDER_COLOR = 0x8410;
   }
 }
 
@@ -108,8 +108,8 @@ void loadSettings() {
     String line = f.readStringUntil('\n');
     line.trim();
     if (line.startsWith("wifi=")) useWiFiTime = line.substring(5).toInt() != 0;
-    else if (line.startsWith("dark=")) darkMode  = line.substring(5).toInt() != 0;
-    else if (line.startsWith("gmt="))  GMT_OFFSET_SEC = line.substring(4).toInt();
+    else if (line.startsWith("dark=")) darkMode = line.substring(5).toInt() != 0;
+    else if (line.startsWith("gmt=")) GMT_OFFSET_SEC = line.substring(4).toInt();
     else if (line.startsWith("ssid=")) WIFI_SSID = line.substring(5);
     else if (line.startsWith("pass=")) WIFI_PASS = line.substring(5);
   }
@@ -133,6 +133,7 @@ void showFileSelection();
 void stundenplanApp();
 void settingsApp();
 void fileManagerApp();
+void wifiScanAndConfigure();
 void drawMenu();
 void ensureWiFi();
 void initSD();
@@ -174,7 +175,10 @@ void connectWiFi() {
   tft.drawString("Verbinde WLAN...", 120, 150, 2);
   WiFi.begin(WIFI_SSID.c_str(), WIFI_PASS.c_str());
   int tries = 0;
-  while (WiFi.status() != WL_CONNECTED && tries < 40) { delay(500); tries++; }
+  while (WiFi.status() != WL_CONNECTED && tries < 40) {
+    delay(500);
+    tries++;
+  }
   tft.fillScreen(BG_COLOR);
   if (WiFi.status() == WL_CONNECTED) {
     tft.setTextColor(TFT_GREEN, BG_COLOR);
@@ -212,7 +216,10 @@ void initTime() {
   tft.setTextDatum(MC_DATUM);
   tft.drawString("Hole Uhrzeit...", 120, 150, 2);
   int tries = 0;
-  while (!getLocalTime(&timeinfo) && tries < 20) { delay(500); tries++; }
+  while (!getLocalTime(&timeinfo) && tries < 20) {
+    delay(500);
+    tries++;
+  }
   tft.fillScreen(BG_COLOR);
   if (tries < 20) {
     tft.setTextColor(TFT_GREEN, BG_COLOR);
@@ -243,7 +250,11 @@ void drawClock() {
     return;
   }
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
+  // WICHTIG: kurzes Timeout (5ms) statt Standard-5000ms!
+  // Sonst blockiert drawClock() bis zu 5 Sekunden lang, wenn die Zeit
+  // (noch) nicht synchron ist -> Touch-Eingaben werden in der Zeit
+  // "verschluckt" und die UI wirkt extrem traege.
+  if (!getLocalTime(&timeinfo, 5)) {
     if (lastUseWiFiTime != useWiFiTime || lastDarkMode != darkMode) {
       tft.fillRect(0, 278, SCREEN_W, 42, BG_COLOR);
       tft.drawFastHLine(0, 278, SCREEN_W, BORDER_COLOR);
@@ -290,12 +301,12 @@ bool getTouch(int& x, int& y) {
 
 void drawMenuIcon(int x, int y, const char* name) {
   const uint16_t* arr = nullptr;
-  if      (strcmp(name, "Calc")      == 0) arr = icon_calc;
-  else if (strcmp(name, "Draw")      == 0) arr = icon_draw;
-  else if (strcmp(name, "Notes")     == 0) arr = icon_notes;
-  else if (strcmp(name, "Chat")      == 0) arr = icon_chat;
-  else if (strcmp(name, "Read")      == 0) arr = icon_book;
-  else if (strcmp(name, "Settings")  == 0) arr = icon_settings;
+  if (strcmp(name, "Calc") == 0) arr = icon_calc;
+  else if (strcmp(name, "Draw") == 0) arr = icon_draw;
+  else if (strcmp(name, "Notes") == 0) arr = icon_notes;
+  else if (strcmp(name, "Chat") == 0) arr = icon_chat;
+  else if (strcmp(name, "Read") == 0) arr = icon_book;
+  else if (strcmp(name, "Settings") == 0) arr = icon_settings;
   else if (strcmp(name, "Stundenplan") == 0) arr = icon_untis;
   if (arr) tft.pushImage(x + 2, y + 6, 24, 24, (uint16_t*)arr, TFT_BLACK);
 }
@@ -309,13 +320,13 @@ struct AppButton {
 };
 
 static const AppButton MENU_APPS[] = {
-  { 10,  20, 100, 50, TFT_BLUE,    "Calc"        },
-  { 130, 20, 100, 50, TFT_RED,     "Draw"        },
-  { 10,  80, 100, 50, TFT_GREEN,   "Notes"       },
-  { 130, 80, 100, 50, TFT_CYAN,    "Chat"        },
-  { 10, 140, 100, 50, TFT_MAGENTA, "Read"        },
-  { 130,140, 100, 50, TFT_ORANGE,  "Settings"    },
-  { 40, 200, 160, 40, 0x07E0,      "Stundenplan" },
+  { 10, 20, 100, 50, TFT_BLUE, "Calc" },
+  { 130, 20, 100, 50, TFT_RED, "Draw" },
+  { 10, 80, 100, 50, TFT_GREEN, "Notes" },
+  { 130, 80, 100, 50, TFT_CYAN, "Chat" },
+  { 10, 140, 100, 50, TFT_MAGENTA, "Read" },
+  { 130, 140, 100, 50, TFT_ORANGE, "Settings" },
+  { 40, 200, 160, 40, 0x07E0, "Stundenplan" },
 };
 static const int MENU_APPS_COUNT = sizeof(MENU_APPS) / sizeof(MENU_APPS[0]);
 
@@ -329,7 +340,7 @@ void drawMenu() {
     drawMenuIcon(b.x + 4, b.y + 5, b.label);
     tft.setTextColor(TFT_WHITE, b.color);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString(b.label, b.x + b.w / 2, b.y + b.h - 12, 2);
+    tft.drawString(b.label, b.x + b.w / 2, b.y + b.h - 12, 3);
   }
   tft.drawFastHLine(0, 250, SCREEN_W, BORDER_COLOR);
 }
@@ -386,7 +397,8 @@ int listMarkdownFiles(String* fileNames, int maxCount) {
 // Gibt die Gesamthoehe der erzeugten Zeilen zurueck.
 void wrapToLines(String text, int xOffset, int maxWidth, int fontSize,
                  uint16_t color, std::vector<RenderedLine>& out) {
-  int lineHeight = (fontSize == 4) ? 26 : (fontSize == 3) ? 22 : 16;
+  int lineHeight = (fontSize == 4) ? 26 : (fontSize == 3) ? 22
+                                                          : 16;
   String remaining = text;
   int safety = 0;
   while (remaining.length() > 0 && safety++ < 200) {
@@ -406,14 +418,22 @@ void wrapToLines(String text, int xOffset, int maxWidth, int fontSize,
         } else {
           remaining = remaining.substring(i);
         }
-        broke = true; break;
+        broke = true;
+        break;
       }
-      line = test; i++;
+      line = test;
+      i++;
     }
-    if (!broke) { line = remaining; remaining = ""; }
+    if (!broke) {
+      line = remaining;
+      remaining = "";
+    }
     RenderedLine rl;
-    rl.text = line; rl.color = color;
-    rl.fontSize = fontSize; rl.xOffset = xOffset; rl.height = lineHeight;
+    rl.text = line;
+    rl.color = color;
+    rl.fontSize = fontSize;
+    rl.xOffset = xOffset;
+    rl.height = lineHeight;
     out.push_back(rl);
   }
 }
@@ -422,22 +442,41 @@ void wrapToLines(String text, int xOffset, int maxWidth, int fontSize,
 void parseTXTLine(String raw, std::vector<RenderedLine>& out) {
   raw.trim();
   if (raw.length() == 0) {
-    RenderedLine blank; blank.text=""; blank.color=BG_COLOR;
-    blank.fontSize=1; blank.xOffset=0; blank.height=8;
-    out.push_back(blank); return;
+    RenderedLine blank;
+    blank.text = "";
+    blank.color = BG_COLOR;
+    blank.fontSize = 1;
+    blank.xOffset = 0;
+    blank.height = 8;
+    out.push_back(blank);
+    return;
   }
-  int fontSize = 2; uint16_t color = TEXT_COLOR;
-  int xOffset = 5; int maxWidth = SCREEN_W - 10;
+  int fontSize = 2;
+  uint16_t color = TEXT_COLOR;
+  int xOffset = 5;
+  int maxWidth = SCREEN_W - 10;
   if (raw.startsWith("# ")) {
-    fontSize=4; color=TFT_YELLOW; raw=raw.substring(2);
+    fontSize = 4;
+    color = TFT_YELLOW;
+    raw = raw.substring(2);
   } else if (raw.startsWith("## ")) {
-    fontSize=3; color=TFT_CYAN; raw=raw.substring(3);
+    fontSize = 3;
+    color = TFT_CYAN;
+    raw = raw.substring(3);
   } else if (raw.startsWith("### ")) {
-    fontSize=2; color=TFT_GREEN; raw=raw.substring(4); xOffset=10; maxWidth=SCREEN_W-15;
+    fontSize = 2;
+    color = TFT_GREEN;
+    raw = raw.substring(4);
+    xOffset = 10;
+    maxWidth = SCREEN_W - 15;
   } else if (raw.startsWith("- ") || raw.startsWith("* ")) {
-    raw="• "+raw.substring(2); xOffset=10; maxWidth=SCREEN_W-15;
+    raw = "• " + raw.substring(2);
+    xOffset = 10;
+    maxWidth = SCREEN_W - 15;
   } else if (raw.startsWith("   ") || raw.startsWith("\t")) {
-    color=TFT_LIGHTGREY; xOffset=15; maxWidth=SCREEN_W-20;
+    color = TFT_LIGHTGREY;
+    xOffset = 15;
+    maxWidth = SCREEN_W - 20;
   }
   wrapToLines(raw, xOffset, maxWidth, fontSize, color, out);
 }
@@ -465,7 +504,9 @@ void showTXTFile(String path) {
     tft.setTextColor(TFT_RED, BG_COLOR);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("SD-Karte nicht verfuegbar", 120, 155, 2);
-    delay(2000); drawMenu(); return;
+    delay(2000);
+    drawMenu();
+    return;
   }
   String content = readFile(path);
   if (content == "Datei nicht gefunden" || content == "SD-Karte nicht verfuegbar") {
@@ -473,7 +514,9 @@ void showTXTFile(String path) {
     tft.setTextColor(TFT_RED, BG_COLOR);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("Datei nicht gefunden!", 120, 155, 2);
-    delay(2000); showFileSelection(); return;
+    delay(2000);
+    showFileSelection();
+    return;
   }
 
   // Dateiname fuer Header
@@ -490,12 +533,14 @@ void showTXTFile(String path) {
     if (c == '\n') {
       parseTXTLine(rawLine, lines);
       rawLine = "";
-    } else { rawLine += c; }
+    } else {
+      rawLine += c;
+    }
   }
 
   // Layout-Konstanten
-  const int HEADER_H  = 24;   // Kopfzeile
-  const int FOOTER_H  = 46;   // Fusszeile mit Buttons
+  const int HEADER_H = 24;  // Kopfzeile
+  const int FOOTER_H = 46;  // Fusszeile mit Buttons
   const int CONTENT_Y = HEADER_H;
   const int CONTENT_H = SCREEN_H - HEADER_H - FOOTER_H;  // 250px
 
@@ -530,9 +575,9 @@ void showTXTFile(String path) {
     // Scroll-Buttons (gross, gut tippbar)
     // [ << ZURUECK ]  [ /\ ]  [ \/ ]
     // Zurueck: 0..119, Hoch: 120..179, Runter: 180..239
-    tft.fillRoundRect(2,   SCREEN_H - FOOTER_H + 6, 114, 36, 6, TFT_RED);
-    tft.fillRoundRect(120, SCREEN_H - FOOTER_H + 6,  56, 36, 6, TFT_DARKGREY);
-    tft.fillRoundRect(180, SCREEN_H - FOOTER_H + 6,  56, 36, 6, TFT_DARKGREY);
+    tft.fillRoundRect(2, SCREEN_H - FOOTER_H + 6, 114, 36, 6, TFT_RED);
+    tft.fillRoundRect(120, SCREEN_H - FOOTER_H + 6, 56, 36, 6, TFT_DARKGREY);
+    tft.fillRoundRect(180, SCREEN_H - FOOTER_H + 6, 56, 36, 6, TFT_DARKGREY);
 
     tft.setTextColor(TFT_WHITE, TFT_RED);
     tft.setTextDatum(MC_DATUM);
@@ -553,7 +598,7 @@ void showTXTFile(String path) {
     // Seitenanzeige
     tft.setTextColor(TFT_LIGHTGREY, BG_COLOR);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString(String(scrollOffset+1)+"/"+String(totalLines),
+    tft.drawString(String(scrollOffset + 1) + "/" + String(totalLines),
                    120, SCREEN_H - FOOTER_H + 2, 1);
 
     // Inhalt
@@ -564,7 +609,10 @@ void showTXTFile(String path) {
 
   while (true) {
     int tx, ty;
-    if (!getTouch(tx, ty)) { delay(10); continue; }
+    if (!getTouch(tx, ty)) {
+      delay(10);
+      continue;
+    }
 
     int footerY = SCREEN_H - FOOTER_H;
 
@@ -601,7 +649,9 @@ void showFileSelection() {
     tft.setTextColor(TFT_RED, BG_COLOR);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("SD-Karte nicht verfuegbar!", 120, 155, 2);
-    delay(2000); drawMenu(); return;
+    delay(2000);
+    drawMenu();
+    return;
   }
   String fileNames[20];
   int fileCount = listMarkdownFiles(fileNames, 20);
@@ -611,7 +661,9 @@ void showFileSelection() {
     tft.setTextDatum(MC_DATUM);
     tft.drawString("Keine .txt Dateien", 120, 140, 2);
     tft.drawString("auf SD-Karte gefunden!", 120, 170, 2);
-    delay(2000); drawMenu(); return;
+    delay(2000);
+    drawMenu();
+    return;
   }
   tft.fillScreen(BG_COLOR);
   tft.fillRect(0, 0, SCREEN_W, 22, HEADER_COLOR);
@@ -632,12 +684,16 @@ void showFileSelection() {
     int tx, ty;
     if (getTouch(tx, ty)) {
       if (isButtonPressed(tx, ty, 20, 290, 200, 25)) {
-        drainTouch(); drawMenu(); return;
+        drainTouch();
+        drawMenu();
+        return;
       }
       for (int i = 0; i < maxDisplay; i++) {
         int yPos = 32 + (i * 40);
         if (isButtonPressed(tx, ty, 20, yPos, 200, 30)) {
-          drainTouch(); showTXTFile(fileNames[i]); return;
+          drainTouch();
+          showTXTFile(fileNames[i]);
+          return;
         }
       }
       delay(150);
@@ -653,37 +709,66 @@ void ensureWiFi() {
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.begin(WIFI_SSID.c_str(), WIFI_PASS.c_str());
     int tries = 0;
-    while (WiFi.status() != WL_CONNECTED && tries < 20) { delay(500); tries++; }
+    while (WiFi.status() != WL_CONNECTED && tries < 20) {
+      delay(500);
+      tries++;
+    }
   }
 }
 
 // ================= VIRTUELLE TASTATUR =================
 
 void getKeyboardLayout(int mode, const char* rows[3][12], int counts[3]) {
-  static const char* low0[] = { "q","w","e","r","t","z","u","i","o","p" };
-  static const char* low1[] = { "a","s","d","f","g","h","j","k","l" };
-  static const char* low2[] = { "y","x","c","v","b","n","m" };
-  static const char* up0[]  = { "Q","W","E","R","T","Z","U","I","O","P" };
-  static const char* up1[]  = { "A","S","D","F","G","H","J","K","L" };
-  static const char* up2[]  = { "Y","X","C","V","B","N","M" };
-  static const char* num0[] = { "1","2","3","4","5","6","7","8","9","0" };
-  static const char* num1[] = { "-","_",".",",","!","?",";",":" };
-  static const char* num2[] = { "+","*","\"","'","/","(",")" };
-  const char** r0; const char** r1; const char** r2;
+  static const char* low0[] = { "q", "w", "e", "r", "t", "z", "u", "i", "o", "p" };
+  static const char* low1[] = { "a", "s", "d", "f", "g", "h", "j", "k", "l" };
+  static const char* low2[] = { "y", "x", "c", "v", "b", "n", "m" };
+  static const char* up0[] = { "Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P" };
+  static const char* up1[] = { "A", "S", "D", "F", "G", "H", "J", "K", "L" };
+  static const char* up2[] = { "Y", "X", "C", "V", "B", "N", "M" };
+  static const char* num0[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
+  static const char* num1[] = { "-", "_", ".", ",", "!", "?", ";", ":" };
+  static const char* num2[] = { "+", "*", "\"", "'", "/", "(", ")" };
+  const char** r0;
+  const char** r1;
+  const char** r2;
   int c0, c1, c2;
   switch (mode) {
-    case 1: r0=up0;  c0=10; r1=up1;  c1=9; r2=up2;  c2=7; break;
-    case 2: r0=num0; c0=10; r1=num1; c1=8; r2=num2; c2=7; break;
-    default:r0=low0; c0=10; r1=low1; c1=9; r2=low2; c2=7; break;
+    case 1:
+      r0 = up0;
+      c0 = 10;
+      r1 = up1;
+      c1 = 9;
+      r2 = up2;
+      c2 = 7;
+      break;
+    case 2:
+      r0 = num0;
+      c0 = 10;
+      r1 = num1;
+      c1 = 8;
+      r2 = num2;
+      c2 = 7;
+      break;
+    default:
+      r0 = low0;
+      c0 = 10;
+      r1 = low1;
+      c1 = 9;
+      r2 = low2;
+      c2 = 7;
+      break;
   }
-  for (int i=0;i<c0;i++) rows[0][i]=r0[i];
-  for (int i=0;i<c1;i++) rows[1][i]=r1[i];
-  for (int i=0;i<c2;i++) rows[2][i]=r2[i];
-  counts[0]=c0; counts[1]=c1; counts[2]=c2;
+  for (int i = 0; i < c0; i++) rows[0][i] = r0[i];
+  for (int i = 0; i < c1; i++) rows[1][i] = r1[i];
+  for (int i = 0; i < c2; i++) rows[2][i] = r2[i];
+  counts[0] = c0;
+  counts[1] = c1;
+  counts[2] = c2;
 }
 
 void drawKeyboard(int kbMode, int yOffset) {
-  const char* rows[3][12]; int counts[3];
+  const char* rows[3][12];
+  int counts[3];
   getKeyboardLayout(kbMode, rows, counts);
   tft.fillRect(0, yOffset, 240, 320 - yOffset, darkMode ? TFT_BLACK : 0xC618);
   int ky2 = yOffset;
@@ -700,21 +785,27 @@ void drawKeyboard(int kbMode, int yOffset) {
     }
     ky2 += 30;
   }
-  tft.fillRoundRect(0,   ky2, 50,  28, 3, kbMode == 2 ? TFT_BLUE : PANEL_COLOR);
-  tft.setTextColor(TEXT_COLOR); tft.drawCentreString(kbMode == 2 ? "ABC" : "123", 25, ky2+14, 1);
-  tft.fillRoundRect(54,  ky2, 40,  28, 3, kbMode == 1 ? TFT_BLUE : PANEL_COLOR);
-  tft.setTextColor(TEXT_COLOR); tft.drawCentreString("^", 74, ky2+14, 1);
-  tft.fillRoundRect(98,  ky2, 80,  28, 3, PANEL_COLOR);
-  tft.setTextColor(TEXT_COLOR); tft.drawCentreString("SPACE", 138, ky2+14, 1);
-  tft.fillRoundRect(182, ky2, 28,  28, 3, PANEL_COLOR);
-  tft.setTextColor(TEXT_COLOR); tft.drawCentreString("<", 196, ky2+14, 1);
-  tft.fillRoundRect(214, ky2, 26,  28, 3, TFT_GREEN);
-  tft.setTextColor(TFT_WHITE); tft.drawCentreString("OK", 227, ky2+14, 1);
+  tft.fillRoundRect(0, ky2, 50, 28, 3, kbMode == 2 ? TFT_BLUE : PANEL_COLOR);
+  tft.setTextColor(TEXT_COLOR);
+  tft.drawCentreString(kbMode == 2 ? "ABC" : "123", 25, ky2 + 14, 1);
+  tft.fillRoundRect(54, ky2, 40, 28, 3, kbMode == 1 ? TFT_BLUE : PANEL_COLOR);
+  tft.setTextColor(TEXT_COLOR);
+  tft.drawCentreString("^", 74, ky2 + 14, 1);
+  tft.fillRoundRect(98, ky2, 80, 28, 3, PANEL_COLOR);
+  tft.setTextColor(TEXT_COLOR);
+  tft.drawCentreString("SPACE", 138, ky2 + 14, 1);
+  tft.fillRoundRect(182, ky2, 28, 28, 3, PANEL_COLOR);
+  tft.setTextColor(TEXT_COLOR);
+  tft.drawCentreString("<", 196, ky2 + 14, 1);
+  tft.fillRoundRect(214, ky2, 26, 28, 3, TFT_GREEN);
+  tft.setTextColor(TFT_WHITE);
+  tft.drawCentreString("OK", 227, ky2 + 14, 1);
 }
 
 int handleKeyboardTouch(int tx, int ty, String& text, int& kbMode, int yOffset) {
   if (ty < yOffset) return 0;
-  const char* rows[3][12]; int counts[3];
+  const char* rows[3][12];
+  int counts[3];
   getKeyboardLayout(kbMode, rows, counts);
   int ky2 = yOffset;
   for (int r = 0; r < 3; r++) {
@@ -733,11 +824,21 @@ int handleKeyboardTouch(int tx, int ty, String& text, int& kbMode, int yOffset) 
     ky2 += 30;
   }
   if (ty >= ky2 && ty < ky2 + 28) {
-    if      (tx < 50)                     { kbMode = (kbMode == 2) ? 0 : 2; return 1; }
-    else if (tx >= 54 && tx < 94)         { kbMode = (kbMode == 1) ? 0 : 1; return 1; }
-    else if (tx >= 98 && tx < 178)        { text += " "; return 1; }
-    else if (tx >= 182 && tx < 210)       { if (text.length() > 0) text.remove(text.length()-1); return 1; }
-    else if (tx >= 214)                   { return 2; }
+    if (tx < 50) {
+      kbMode = (kbMode == 2) ? 0 : 2;
+      return 1;
+    } else if (tx >= 54 && tx < 94) {
+      kbMode = (kbMode == 1) ? 0 : 1;
+      return 1;
+    } else if (tx >= 98 && tx < 178) {
+      text += " ";
+      return 1;
+    } else if (tx >= 182 && tx < 210) {
+      if (text.length() > 0) text.remove(text.length() - 1);
+      return 1;
+    } else if (tx >= 214) {
+      return 2;
+    }
   }
   return 0;
 }
@@ -750,15 +851,19 @@ String virtualKeyboardInput(String title, String initial, int maxLen) {
     tft.fillScreen(BG_COLOR);
     tft.fillRect(0, 0, 240, 24, HEADER_COLOR);
     tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
-    tft.setTextSize(1); tft.setTextDatum(TL_DATUM);
-    tft.setCursor(4, 8); tft.print(title);
+    tft.setTextSize(1);
+    tft.setTextDatum(TL_DATUM);
+    tft.setCursor(4, 8);
+    tft.print(title);
     tft.fillRoundRect(180, 2, 56, 20, 3, TFT_GREEN);
     tft.setTextColor(TFT_WHITE, TFT_GREEN);
     tft.setTextDatum(MC_DATUM);
     tft.drawString("FERTIG", 208, 12, 1);
     tft.drawRect(8, 32, 224, 30, BORDER_COLOR);
     tft.setTextColor(TEXT_COLOR, BG_COLOR);
-    tft.setTextDatum(TL_DATUM); tft.setCursor(14, 41); tft.print(text);
+    tft.setTextDatum(TL_DATUM);
+    tft.setCursor(14, 41);
+    tft.print(text);
     if ((millis() / 500) % 2 == 0) {
       int cw = tft.textWidth(text, 1) + 2;
       tft.fillRect(14 + cw, 38, 2, 16, TEXT_COLOR);
@@ -766,9 +871,15 @@ String virtualKeyboardInput(String title, String initial, int maxLen) {
     drawKeyboard(kbMode, 165);
     int kx, ky;
     while (!getTouch(kx, ky)) delay(10);
-    if (ky < 24 && kx > 175) { drainTouch(); return text; }
+    if (ky < 24 && kx > 175) {
+      drainTouch();
+      return text;
+    }
     int res = handleKeyboardTouch(kx, ky, text, kbMode, 165);
-    if (res == 2) { drainTouch(); return text; }
+    if (res == 2) {
+      drainTouch();
+      return text;
+    }
     if (maxLen > 0 && (int)text.length() > maxLen) text = text.substring(0, maxLen);
     delay(150);
   }
@@ -811,17 +922,16 @@ void loop() {
       if (isButtonPressed(tx, ty, b.x, b.y, b.w, b.h)) {
         Serial.println(b.label);
         drainTouch();
-        if      (strcmp(b.label, "Calc")        == 0) calculator();
-        else if (strcmp(b.label, "Draw")        == 0) drawing();
-        else if (strcmp(b.label, "Notes")       == 0) notesApp();
-        else if (strcmp(b.label, "Chat")        == 0) chatApp();
-        else if (strcmp(b.label, "Read")        == 0) showFileSelection();
-        else if (strcmp(b.label, "Settings")    == 0) settingsApp();
+        if (strcmp(b.label, "Calc") == 0) calculator();
+        else if (strcmp(b.label, "Draw") == 0) drawing();
+        else if (strcmp(b.label, "Notes") == 0) notesApp();
+        else if (strcmp(b.label, "Chat") == 0) chatApp();
+        else if (strcmp(b.label, "Read") == 0) showFileSelection();
+        else if (strcmp(b.label, "Settings") == 0) settingsApp();
         else if (strcmp(b.label, "Stundenplan") == 0) stundenplanApp();
         break;
       }
     }
-    delay(150);
   }
 }
 
@@ -835,43 +945,48 @@ void calculator() {
   bool newNumber = true;
   bool error = false;
 
-  struct CalcButton { String label; int x, y, w, h; uint16_t color; };
+  struct CalcButton {
+    String label;
+    int x, y, w, h;
+    uint16_t color;
+  };
 
   // BUGFIX: "Zurueck"-Button liegt jetzt vollstaendig auf dem Bildschirm
   // (y=305, h=22 -> y+h=327 war ausserhalb SCREEN_H=320 → jetzt h=22 at y=296)
   CalcButton buttons[] = {
-    { "C",        5,  70,  50, 35, TFT_RED       },
-    { "+/-",      60, 70,  50, 35, TFT_DARKGREY  },
-    { "Wr.",     115, 70,  50, 35, TFT_DARKGREY  },
-    { "/",       170, 70,  55, 35, TFT_ORANGE    },
-    { "7",         5,110,  50, 35, TFT_DARKGREY  },
-    { "8",        60,110,  50, 35, TFT_DARKGREY  },
-    { "9",       115,110,  50, 35, TFT_DARKGREY  },
-    { "*",       170,110,  55, 35, TFT_ORANGE    },
-    { "4",         5,150,  50, 35, TFT_DARKGREY  },
-    { "5",        60,150,  50, 35, TFT_DARKGREY  },
-    { "6",       115,150,  50, 35, TFT_DARKGREY  },
-    { "-",       170,150,  55, 35, TFT_ORANGE    },
-    { "1",         5,190,  50, 35, TFT_DARKGREY  },
-    { "2",        60,190,  50, 35, TFT_DARKGREY  },
-    { "3",       115,190,  50, 35, TFT_DARKGREY  },
-    { "+",       170,190,  55, 35, TFT_ORANGE    },
-    { "x2",        5,230,  50, 30, TFT_DARKGREY  },
-    { "0",        60,230,  50, 30, TFT_DARKGREY  },
-    { ".",       115,230,  50, 30, TFT_DARKGREY  },
-    { "=",       170,230,  55, 30, TFT_GREEN     },
-    { "^",         5,264,  50, 28, TFT_PURPLE    },
-    { "1/x",      60,264, 100, 28, TFT_DARKGREY  },
-    { "<--",     165,264,  65, 28, TFT_DARKGREY  },
+    { "C", 5, 70, 50, 35, TFT_RED },
+    { "+/-", 60, 70, 50, 35, TFT_DARKGREY },
+    { "Wr.", 115, 70, 50, 35, TFT_DARKGREY },
+    { "/", 170, 70, 55, 35, TFT_ORANGE },
+    { "7", 5, 110, 50, 35, TFT_DARKGREY },
+    { "8", 60, 110, 50, 35, TFT_DARKGREY },
+    { "9", 115, 110, 50, 35, TFT_DARKGREY },
+    { "*", 170, 110, 55, 35, TFT_ORANGE },
+    { "4", 5, 150, 50, 35, TFT_DARKGREY },
+    { "5", 60, 150, 50, 35, TFT_DARKGREY },
+    { "6", 115, 150, 50, 35, TFT_DARKGREY },
+    { "-", 170, 150, 55, 35, TFT_ORANGE },
+    { "1", 5, 190, 50, 35, TFT_DARKGREY },
+    { "2", 60, 190, 50, 35, TFT_DARKGREY },
+    { "3", 115, 190, 50, 35, TFT_DARKGREY },
+    { "+", 170, 190, 55, 35, TFT_ORANGE },
+    { "x2", 5, 230, 50, 30, TFT_DARKGREY },
+    { "0", 60, 230, 50, 30, TFT_DARKGREY },
+    { ".", 115, 230, 50, 30, TFT_DARKGREY },
+    { "=", 170, 230, 55, 30, TFT_GREEN },
+    { "^", 5, 264, 50, 28, TFT_PURPLE },
+    { "1/x", 60, 264, 100, 28, TFT_DARKGREY },
+    { "<--", 165, 264, 65, 28, TFT_DARKGREY },
     // BUGFIX: Zurueck ist jetzt y=295, h=22 → y+h=317 < 320 (auf dem Screen)
-    { "Zurueck",   5,295, 230, 22, TFT_RED       },
+    { "Zurueck", 5, 295, 230, 22, TFT_RED },
   };
   int numButtons = sizeof(buttons) / sizeof(buttons[0]);
 
   auto drawDisplay = [&]() {
     tft.fillRect(5, 5, 230, 60, TFT_DARKGREY);
     tft.drawRect(5, 5, 230, 60, TFT_WHITE);
-    tft.setTextDatum(TR_DATUM); tft.setTextSize(1);
+    tft.setTextDatum(TR_DATUM);
+    tft.setTextSize(1);
     if (error) {
       tft.setTextColor(TFT_RED, TFT_DARKGREY);
       tft.drawString("ERROR", 230, 10, 4);
@@ -895,8 +1010,8 @@ void calculator() {
       tft.setTextColor(TFT_WHITE, buttons[i].color);
       tft.setTextDatum(MC_DATUM);
       tft.drawString(buttons[i].label,
-        buttons[i].x + buttons[i].w / 2,
-        buttons[i].y + buttons[i].h / 2, 2);
+                     buttons[i].x + buttons[i].w / 2,
+                     buttons[i].y + buttons[i].h / 2, 2);
     }
   };
 
@@ -906,8 +1021,12 @@ void calculator() {
       case '-': result -= currentNum; return true;
       case '*': result *= currentNum; return true;
       case '/':
-        if (currentNum != 0) { result /= currentNum; return true; }
-        error = true; return false;
+        if (currentNum != 0) {
+          result /= currentNum;
+          return true;
+        }
+        error = true;
+        return false;
       case '^': result = pow(result, currentNum); return true;
     }
     return true;
@@ -915,12 +1034,21 @@ void calculator() {
 
   auto handleInput = [&](String value) {
     if (error) {
-      error = false; display = "0"; input = ""; result = 0;
-      lastOperator = ' '; newNumber = true;
+      error = false;
+      display = "0";
+      input = "";
+      result = 0;
+      lastOperator = ' ';
+      newNumber = true;
       if (value == "C") return;
     }
     if (value == "C") {
-      display = "0"; input = ""; result = 0; lastOperator = ' '; newNumber = true; error = false;
+      display = "0";
+      input = "";
+      result = 0;
+      lastOperator = ' ';
+      newNumber = true;
+      error = false;
     } else if (value == "+/-") {
       if (display != "0") {
         if (display.startsWith("-")) display = display.substring(1);
@@ -928,19 +1056,31 @@ void calculator() {
       }
     } else if (value == "Wr.") {
       float num = display.toFloat();
-      if (num >= 0) { display = String(sqrt(num), 6); result = display.toFloat(); newNumber = true; }
-      else error = true;
+      if (num >= 0) {
+        display = String(sqrt(num), 6);
+        result = display.toFloat();
+        newNumber = true;
+      } else error = true;
     } else if (value == "x2") {
-      float num = display.toFloat(); display = String(num * num, 6); result = display.toFloat(); newNumber = true;
+      float num = display.toFloat();
+      display = String(num * num, 6);
+      result = display.toFloat();
+      newNumber = true;
     } else if (value == "1/x") {
       float num = display.toFloat();
-      if (num != 0) { display = String(1.0 / num, 6); result = display.toFloat(); newNumber = true; }
-      else error = true;
+      if (num != 0) {
+        display = String(1.0 / num, 6);
+        result = display.toFloat();
+        newNumber = true;
+      } else error = true;
     } else if (value == "=") {
       float currentNum = display.toFloat();
       if (lastOperator != ' ') {
         if (applyPendingOp(currentNum)) {
-          display = String(result, 4); input = ""; lastOperator = ' '; newNumber = true;
+          display = String(result, 4);
+          input = "";
+          lastOperator = ' ';
+          newNumber = true;
         }
       }
     } else if (value == "+" || value == "-" || value == "*" || value == "/" || value == "^") {
@@ -948,8 +1088,12 @@ void calculator() {
         float currentNum = display.toFloat();
         if (!applyPendingOp(currentNum)) return;
         display = String(result, 4);
-      } else { result = display.toFloat(); }
-      lastOperator = value[0]; input = display + " " + value; newNumber = true;
+      } else {
+        result = display.toFloat();
+      }
+      lastOperator = value[0];
+      input = display + " " + value;
+      newNumber = true;
     } else if (value == "<--") {
       if (!newNumber && display.length() > 0) {
         display.remove(display.length() - 1);
@@ -957,7 +1101,8 @@ void calculator() {
       }
     } else {
       if (newNumber) {
-        if (value == ".") display = "0."; else display = value;
+        if (value == ".") display = "0.";
+        else display = value;
         newNumber = false;
       } else {
         if (value == ".") {
@@ -975,18 +1120,27 @@ void calculator() {
   drainTouch();
   while (true) {
     tft.fillScreen(TFT_BLACK);
-    drawDisplay(); drawButtons();
+    drawDisplay();
+    drawButtons();
     int tx, ty;
     while (!getTouch(tx, ty)) delay(10);
     bool buttonPressed = false;
     for (int i = 0; i < numButtons; i++) {
       if (isButtonPressed(tx, ty, buttons[i].x, buttons[i].y, buttons[i].w, buttons[i].h)) {
-        if (buttons[i].label == "Zurueck") { drainTouch(); drawMenu(); return; }
+        if (buttons[i].label == "Zurueck") {
+          drainTouch();
+          drawMenu();
+          return;
+        }
         handleInput(buttons[i].label);
-        buttonPressed = true; break;
+        buttonPressed = true;
+        break;
       }
     }
-    if (buttonPressed) { drawDisplay(); delay(180); }
+    if (buttonPressed) {
+      drawDisplay();
+      delay(180);
+    }
   }
 }
 
@@ -1040,35 +1194,70 @@ void drawing() {
     tft.drawFastHLine(0, 294, SCREEN_W, TFT_DARKGREY);
   };
 
-  auto clearCanvas = [&]() { tft.fillRect(0, 30, SCREEN_W, 240, TFT_WHITE); };
+  auto clearCanvas = [&]() {
+    tft.fillRect(0, 30, SCREEN_W, 240, TFT_WHITE);
+  };
 
-  drawHeader(); drawToolbar(); clearCanvas();
+  drawHeader();
+  drawToolbar();
+  clearCanvas();
 
   while (true) {
     int x, y;
     if (!getTouch(x, y)) {
-      if (isDown) { isDown = false; lastX = lastY = -1; }
-      delay(10); continue;
+      if (isDown) {
+        isDown = false;
+        lastX = lastY = -1;
+      }
+      delay(10);
+      continue;
     }
     if (y < 28) {
-      if (isButtonPressed(x, y, 2, 2, 50, 24)) { drainTouch(); drawMenu(); return; }
-      delay(10); continue;
+      if (isButtonPressed(x, y, 2, 2, 50, 24)) {
+        drainTouch();
+        drawMenu();
+        return;
+      }
+      delay(10);
+      continue;
     }
     if (y >= 270 && y < 294) {
       int idx = x / (SCREEN_W / 8);
-      if (idx >= 0 && idx < 8) { color = palette[idx]; eraserOn = false; drawToolbar(); }
-      isDown = false; lastX = lastY = -1; delay(150); continue;
+      if (idx >= 0 && idx < 8) {
+        color = palette[idx];
+        eraserOn = false;
+        drawToolbar();
+      }
+      isDown = false;
+      lastX = lastY = -1;
+      delay(150);
+      continue;
     }
     if (y >= 294) {
       int ti = x / (SCREEN_W / 5);
       switch (ti) {
-        case 0: eraserOn = !eraserOn; drawToolbar(); break;
+        case 0:
+          eraserOn = !eraserOn;
+          drawToolbar();
+          break;
         case 1: clearCanvas(); break;
-        case 2: drainTouch(); drawMenu(); return;
-        case 3: if (penSize < 20) penSize += 2; drawToolbar(); break;
-        case 4: if (penSize > 1) penSize -= 2; drawToolbar(); break;
+        case 2:
+          drainTouch();
+          drawMenu();
+          return;
+        case 3:
+          if (penSize < 20) penSize += 2;
+          drawToolbar();
+          break;
+        case 4:
+          if (penSize > 1) penSize -= 2;
+          drawToolbar();
+          break;
       }
-      isDown = false; lastX = lastY = -1; delay(150); continue;
+      isDown = false;
+      lastX = lastY = -1;
+      delay(150);
+      continue;
     }
     uint16_t dc = eraserOn ? TFT_WHITE : color;
     if (!isDown || lastX < 0) {
@@ -1078,9 +1267,12 @@ void drawing() {
       int steps = max(abs(dx), abs(dy));
       if (steps == 0) steps = 1;
       for (int i = 0; i <= steps; i++)
-        tft.fillCircle(lastX + (dx*i)/steps, lastY + (dy*i)/steps, penSize, dc);
+        tft.fillCircle(lastX + (dx * i) / steps, lastY + (dy * i) / steps, penSize, dc);
     }
-    lastX = x; lastY = y; isDown = true; delay(10);
+    lastX = x;
+    lastY = y;
+    isDown = true;
+    delay(10);
   }
 }
 
@@ -1088,7 +1280,10 @@ void drawing() {
 
 void notesApp() {
   drainTouch();
-  struct NoteFile { String name; String path; };
+  struct NoteFile {
+    String name;
+    String path;
+  };
 
   auto refreshNotes = [](std::vector<NoteFile>& list) {
     list.clear();
@@ -1106,7 +1301,8 @@ void notesApp() {
         n.path = "/notes/" + String(f.name());
         list.push_back(n);
       }
-      f.close(); f = dir.openNextFile();
+      f.close();
+      f = dir.openNextFile();
     }
     dir.close();
   };
@@ -1135,26 +1331,33 @@ void notesApp() {
     for (int i = offset; i < (int)list.size() && shown < 7; i++) {
       tft.fillRoundRect(5, y, 230, 32, 4, sel == i ? TFT_BLUE : PANEL_COLOR);
       tft.setTextColor(TEXT_COLOR);
-      tft.setCursor(12, y + 8); tft.print(list[i].name);
+      tft.setCursor(12, y + 8);
+      tft.print(list[i].name);
       tft.fillRoundRect(190, y + 4, 40, 24, 3, TFT_RED);
       tft.setTextColor(TFT_WHITE, TFT_RED);
       tft.setTextDatum(MC_DATUM);
       tft.drawString("X", 210, y + 16, 1);
-      y += 36; shown++;
+      y += 36;
+      shown++;
     }
   };
 
   auto editNote = [&](NoteFile& note) {
     String text = "";
     File rf = SD.open(note.path, FILE_READ);
-    if (rf) { while (rf.available()) text += (char)rf.read(); rf.close(); }
+    if (rf) {
+      while (rf.available()) text += (char)rf.read();
+      rf.close();
+    }
     int kbMode = 0;
     while (true) {
       tft.fillScreen(BG_COLOR);
       tft.fillRect(0, 0, 240, 24, HEADER_COLOR);
       tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
-      tft.setTextSize(1); tft.setTextDatum(TL_DATUM);
-      tft.setCursor(4, 6); tft.print(note.name);
+      tft.setTextSize(1);
+      tft.setTextDatum(TL_DATUM);
+      tft.setCursor(4, 6);
+      tft.print(note.name);
       tft.fillRoundRect(180, 2, 55, 20, 3, TFT_GREEN);
       tft.setTextColor(TFT_WHITE, TFT_GREEN);
       tft.setTextDatum(MC_DATUM);
@@ -1169,7 +1372,9 @@ void notesApp() {
         String line;
         while (idx2 < (int)disp.length() && disp[idx2] != '\n' && line.length() < 34) line += disp[idx2++];
         if (idx2 < (int)disp.length() && disp[idx2] == '\n') idx2++;
-        tft.setCursor(4, lineY); tft.print(line); lineY += 12;
+        tft.setCursor(4, lineY);
+        tft.print(line);
+        lineY += 12;
       }
       if ((millis() / 500) % 2 == 0 && lineY < 160) {
         int cursorCol = text.length() % 34;
@@ -1181,9 +1386,13 @@ void notesApp() {
       if (ky < 24) {
         if (kx > 175) {
           File sf = SD.open(note.path, FILE_WRITE);
-          if (sf) { sf.print(text); sf.close(); }
+          if (sf) {
+            sf.print(text);
+            sf.close();
+          }
         }
-        drainTouch(); return;
+        drainTouch();
+        return;
       }
       handleKeyboardTouch(kx, ky, text, kbMode, 165);
       delay(130);
@@ -1197,9 +1406,16 @@ void notesApp() {
 
   while (true) {
     int tx, ty;
-    if (!getTouch(tx, ty)) { delay(10); continue; }
+    if (!getTouch(tx, ty)) {
+      delay(10);
+      continue;
+    }
     if (ty < 30) {
-      if (tx < 50) { drainTouch(); drawMenu(); return; }
+      if (tx < 50) {
+        drainTouch();
+        drawMenu();
+        return;
+      }
       if (tx > 195) {
         String newName = virtualKeyboardInput("Neuer Notizname:", "", 24);
         newName.trim();
@@ -1211,7 +1427,8 @@ void notesApp() {
         refreshNotes(notes);
         drawNoteList(notes, selected, scrollOff);
       }
-      delay(150); continue;
+      delay(150);
+      continue;
     }
     int idx = scrollOff + (ty - 38) / 36;
     if (idx >= 0 && idx < (int)notes.size() && ty < 38 + 7 * 36) {
@@ -1221,7 +1438,8 @@ void notesApp() {
         if (scrollOff > 0 && scrollOff >= (int)notes.size()) scrollOff = max(0, (int)notes.size() - 1);
         drawNoteList(notes, selected, scrollOff);
       } else {
-        selected = idx; drainTouch();
+        selected = idx;
+        drainTouch();
         editNote(notes[selected]);
         refreshNotes(notes);
         drawNoteList(notes, selected, scrollOff);
@@ -1230,6 +1448,8 @@ void notesApp() {
     }
   }
 }
+
+// ================= CHAT APP =================
 
 // ================= CHAT APP =================
 
@@ -1645,6 +1865,9 @@ void chatApp() {
 // ================= STUNDENPLAN APP =================
 // Ruft WebUntis-Timetable ueber API ab und zeigt einen Tag mit Navigation.
 
+// ================= STUNDENPLAN APP =================
+// Ruft WebUntis-Timetable ueber API ab und zeigt einen Tag mit Navigation.
+
 String extractField(String json, String key) {
   int k = json.indexOf("\"" + key + "\":");
   if (k < 0) return "";
@@ -1770,6 +1993,8 @@ void stundenplanApp() {
     drainTouch(); drawMenu(); return;
   }
   static const char* DOW[] = {"Mo","Di","Mi","Do","Fr","Sa","So"};
+  
+  // *** NEU in Version 2: Begrenzung auf Schultage (Mo-Fr) ***
   if (viewDayOffset < 0) viewDayOffset = 0;
   else if (viewDayOffset > 4) viewDayOffset = 4;
 
@@ -1847,8 +2072,9 @@ void stundenplanApp() {
     if (ty >= by) {
       if (tx < 40) {
         viewDayOffset--;
+        // *** NEU: Begrenzung auf Mo-Fr beim Zurückblättern ***
         if (viewDayOffset < 0) {
-          viewDayOffset = 4;
+          viewDayOffset = 4;  // Springe zu Freitag der Vorwoche
           mondayDay = cachedMonD - 7;
           mondayMon = cachedMonM; mondayYear = cachedMonY;
           if (mondayDay < 1) { mondayMon--; if (mondayMon < 1) { mondayMon = 12; mondayYear--; } mondayDay += dim[mondayMon - 1]; }
@@ -1857,8 +2083,9 @@ void stundenplanApp() {
         delay(200); continue;
       } else if (tx > 200) {
         viewDayOffset++;
+        // *** NEU: Begrenzung auf Mo-Fr beim Vorblättern ***
         if (viewDayOffset > 4) {
-          viewDayOffset = 0;
+          viewDayOffset = 0;  // Springe zu Montag der nächsten Woche
           mondayDay = cachedMonD + 7;
           mondayMon = cachedMonM; mondayYear = cachedMonY;
           int dim2[] = {31,28,31,30,31,30,31,31,30,31,30,31};
@@ -1914,8 +2141,8 @@ int listDir(String path, std::vector<FMEntry>& entries) {
   File f = dir.openNextFile();
   while (f) {
     FMEntry e;
-    e.name   = String(f.name());
-    e.isDir  = f.isDirectory();
+    e.name = String(f.name());
+    e.isDir = f.isDirectory();
     entries.push_back(e);
     f.close();
     f = dir.openNextFile();
@@ -1929,17 +2156,23 @@ void fmEditFile(String path) {
   String text = "";
   if (SD.exists(path)) {
     File f = SD.open(path, FILE_READ);
-    if (f) { while (f.available()) text += (char)f.read(); f.close(); }
+    if (f) {
+      while (f.available()) text += (char)f.read();
+      f.close();
+    }
   }
   int kbMode = 0;
   while (true) {
     tft.fillScreen(BG_COLOR);
     tft.fillRect(0, 0, 240, 24, HEADER_COLOR);
     tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
-    tft.setTextSize(1); tft.setTextDatum(TL_DATUM);
-    String fname = path; fname = fname.substring(fname.lastIndexOf('/') + 1);
+    tft.setTextSize(1);
+    tft.setTextDatum(TL_DATUM);
+    String fname = path;
+    fname = fname.substring(fname.lastIndexOf('/') + 1);
     if (fname.length() > 18) fname = fname.substring(0, 18);
-    tft.setCursor(4, 6); tft.print(fname);
+    tft.setCursor(4, 6);
+    tft.print(fname);
     tft.fillRoundRect(168, 2, 66, 20, 3, TFT_GREEN);
     tft.setTextColor(TFT_WHITE, TFT_GREEN);
     tft.setTextDatum(MC_DATUM);
@@ -1954,7 +2187,9 @@ void fmEditFile(String path) {
       String line;
       while (idx2 < (int)disp.length() && disp[idx2] != '\n' && line.length() < 34) line += disp[idx2++];
       if (idx2 < (int)disp.length() && disp[idx2] == '\n') idx2++;
-      tft.setCursor(4, lineY); tft.print(line); lineY += 12;
+      tft.setCursor(4, lineY);
+      tft.print(line);
+      lineY += 12;
     }
     if ((millis() / 500) % 2 == 0 && lineY < 160) {
       int cc = text.length() % 34;
@@ -1965,10 +2200,17 @@ void fmEditFile(String path) {
     while (!getTouch(kx, ky)) delay(10);
     if (ky < 24 && kx > 162) {
       File sf = SD.open(path, FILE_WRITE);
-      if (sf) { sf.print(text); sf.close(); }
-      drainTouch(); return;
+      if (sf) {
+        sf.print(text);
+        sf.close();
+      }
+      drainTouch();
+      return;
     }
-    if (ky < 24) { drainTouch(); return; }
+    if (ky < 24) {
+      drainTouch();
+      return;
+    }
     handleKeyboardTouch(kx, ky, text, kbMode, 165);
     delay(130);
   }
@@ -1982,11 +2224,12 @@ void fileManagerApp() {
     tft.setTextDatum(MC_DATUM);
     tft.drawString("SD-Karte nicht", 120, 140, 2);
     tft.drawString("verfuegbar!", 120, 170, 2);
-    delay(2000); return;
+    delay(2000);
+    return;
   }
 
   String currentPath = "/";
-  String cutPath = "";     // Ausgeschnittene Datei (fuer Verschieben)
+  String cutPath = "";  // Ausgeschnittene Datei (fuer Verschieben)
   int scrollOffset = 0;
 
   // Maximale sichtbare Eintraege
@@ -2052,12 +2295,12 @@ void fileManagerApp() {
       tft.print(e.isDir ? "D" : "F");
 
       // Aktions-Knopf (3 kleine Buttons: Bearbeiten/Oeffnen | Umbenennen | Loeschen)
-      tft.fillRoundRect(200, y,     37, (ROW_H-2)/3,     3, TFT_GREEN);
-      tft.fillRoundRect(200, y+12,  37, (ROW_H-2)/3,     3, TFT_BLUE);
-      tft.fillRoundRect(200, y+24,  37, (ROW_H-2)/3,     3, TFT_RED);
+      tft.fillRoundRect(200, y, 37, (ROW_H - 2) / 3, 3, TFT_GREEN);
+      tft.fillRoundRect(200, y + 12, 37, (ROW_H - 2) / 3, 3, TFT_BLUE);
+      tft.fillRoundRect(200, y + 24, 37, (ROW_H - 2) / 3, 3, TFT_RED);
       tft.setTextColor(TFT_WHITE);
       tft.setTextDatum(MC_DATUM);
-      tft.drawString(e.isDir ? "OPN" : "EDI", 218, y + 5,  1);
+      tft.drawString(e.isDir ? "OPN" : "EDI", 218, y + 5, 1);
       tft.drawString("REN", 218, y + 17, 1);
       tft.drawString("DEL", 218, y + 29, 1);
     }
@@ -2079,7 +2322,7 @@ void fileManagerApp() {
       // Zurueck
       if (tx < 35) {
         drainTouch();
-        if (currentPath == "/") return;   // Ganz raus
+        if (currentPath == "/") return;  // Ganz raus
         // Eine Ebene hoch
         int slash = currentPath.lastIndexOf('/');
         if (slash > 0) currentPath = currentPath.substring(0, slash);
@@ -2129,7 +2372,8 @@ void fileManagerApp() {
           File dst = SD.open(dest, FILE_WRITE);
           if (src && dst) {
             while (src.available()) dst.write(src.read());
-            src.close(); dst.close();
+            src.close();
+            dst.close();
             SD.remove(cutPath);
           }
           cutPath = "";
@@ -2144,7 +2388,8 @@ void fileManagerApp() {
     if (ty >= 245 && ty < 265) {
       if (ty < 255 && scrollOffset + MAX_VISIBLE < (int)entries.size()) scrollOffset++;
       else if (ty >= 255 && scrollOffset > 0) scrollOffset--;
-      delay(150); continue;
+      delay(150);
+      continue;
     }
 
     // Eintrags-Bereich
@@ -2187,7 +2432,7 @@ void fileManagerApp() {
           tft.setTextDatum(MC_DATUM);
           tft.drawString("Wirklich loeschen?", 120, 100, 2);
           tft.drawString(entries[rowIdx].name, 120, 130, 1);
-          drawButton(20,  170, 90, 36, TFT_RED, "JA");
+          drawButton(20, 170, 90, 36, TFT_RED, "JA");
           drawButton(130, 170, 90, 36, TFT_GREEN, "NEIN");
           int cx, cy;
           while (!getTouch(cx, cy)) delay(10);
@@ -2209,9 +2454,9 @@ void fileManagerApp() {
           tft.setTextColor(TEXT_COLOR, BG_COLOR);
           tft.setTextDatum(MC_DATUM);
           tft.drawString(entries[rowIdx].name, 120, 80, 2);
-          drawButton(20, 120, 200, 36, TFT_GREEN,   "Bearbeiten");
-          drawButton(20, 165, 200, 36, TFT_ORANGE,  "Ausschneiden (Verschb.)");
-          drawButton(20, 210, 200, 36, TFT_RED,     "Abbrechen");
+          drawButton(20, 120, 200, 36, TFT_GREEN, "Bearbeiten");
+          drawButton(20, 165, 200, 36, TFT_ORANGE, "Ausschneiden (Verschb.)");
+          drawButton(20, 210, 200, 36, TFT_RED, "Abbrechen");
           int cx, cy;
           while (!getTouch(cx, cy)) delay(10);
           drainTouch();
@@ -2222,6 +2467,143 @@ void fileManagerApp() {
           }
         }
       }
+    }
+    delay(150);
+  }
+}
+
+// ================= WLAN SCAN & PASSWORT-EINGABE =================
+// Scannt verfuegbare WLAN-Netzwerke, zeigt sie als Liste (mit Signalstaerke),
+// und fragt nach Antippen eines Netzwerks per virtueller Tastatur das Passwort ab.
+// Fallback: manuelle SSID/Passwort-Eingabe ueber "MANU."-Button.
+
+void wifiScanAndConfigure() {
+  drainTouch();
+  tft.fillScreen(BG_COLOR);
+  tft.setTextColor(TEXT_COLOR, BG_COLOR);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString("Suche WLANs...", 120, 150, 2);
+
+  WiFi.mode(WIFI_STA);
+  int n = WiFi.scanNetworks();
+
+  std::vector<String> ssids;
+  std::vector<int> rssis;
+  for (int i = 0; i < n; i++) {
+    String s = WiFi.SSID(i);
+    if (s.length() == 0) continue;
+    bool dup = false;
+    for (size_t j = 0; j < ssids.size(); j++)
+      if (ssids[j] == s) {
+        dup = true;
+        break;
+      }
+    if (dup) continue;
+    ssids.push_back(s);
+    rssis.push_back(WiFi.RSSI(i));
+  }
+  WiFi.scanDelete();
+
+  int scrollOff = 0;
+  const int ROW_H = 36;
+  const int MAX_VISIBLE = 6;
+
+  while (true) {
+    tft.fillScreen(BG_COLOR);
+    tft.fillRect(0, 0, 240, 28, HEADER_COLOR);
+    tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString("WLAN AUSWAEHLEN", 120, 14, 2);
+    tft.fillRoundRect(2, 2, 40, 24, 3, TFT_RED);
+    tft.setTextColor(TFT_WHITE, TFT_RED);
+    tft.drawString("<", 22, 14, 2);
+    tft.fillRoundRect(186, 2, 52, 24, 3, TFT_BLUE);
+    tft.setTextColor(TFT_WHITE, TFT_BLUE);
+    tft.drawString("MANU.", 212, 14, 1);
+
+    if (ssids.empty()) {
+      tft.setTextColor(TFT_YELLOW, BG_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("Keine Netzwerke gefunden", 120, 150, 2);
+    }
+
+    int visibleCount = min((int)ssids.size() - scrollOff, MAX_VISIBLE);
+    for (int i = 0; i < visibleCount; i++) {
+      int idx = i + scrollOff;
+      int y = 32 + i * ROW_H;
+      tft.fillRoundRect(4, y, 232, ROW_H - 2, 4, PANEL_COLOR);
+      tft.setTextColor(TEXT_COLOR, PANEL_COLOR);
+      tft.setTextDatum(TL_DATUM);
+      String name = ssids[idx];
+      if (name.length() > 21) name = name.substring(0, 20) + "~";
+      tft.setCursor(8, y + 10);
+      tft.print(name);
+      // Signalstaerke als kleine Balken (4 Stufen)
+      int bars = rssis[idx] > -55 ? 4 : rssis[idx] > -65 ? 3
+                                      : rssis[idx] > -75 ? 2
+                                                         : 1;
+      for (int b = 0; b < 4; b++) {
+        uint16_t bc = b < bars ? TFT_GREEN : TFT_DARKGREY;
+        int bh = 6 + b * 4;
+        tft.fillRect(196 + b * 8, y + (ROW_H - 2) - bh - 4, 5, bh, bc);
+      }
+    }
+    if (scrollOff > 0) tft.fillTriangle(120, 252, 110, 262, 130, 262, TFT_LIGHTGREY);
+    if (scrollOff + MAX_VISIBLE < (int)ssids.size()) tft.fillTriangle(120, 250, 110, 240, 130, 240, TFT_LIGHTGREY);
+
+    int tx, ty;
+    while (!getTouch(tx, ty)) delay(10);
+
+    if (ty < 28) {
+      if (tx < 42) {
+        drainTouch();
+        return;
+      }
+      if (tx >= 186) {
+        drainTouch();
+        String newSSID = virtualKeyboardInput("WLAN-Name (SSID):", WIFI_SSID, 32);
+        newSSID.trim();
+        if (newSSID.length() > 0) {
+          String newPass = virtualKeyboardInput("WLAN-Passwort:", "", 63);
+          WIFI_SSID = newSSID;
+          WIFI_PASS = newPass;
+          saveSettings();
+          tft.fillScreen(BG_COLOR);
+          tft.setTextColor(TFT_GREEN, BG_COLOR);
+          tft.setTextDatum(MC_DATUM);
+          tft.drawString("WLAN-Daten gespeichert", 120, 150, 2);
+          delay(1200);
+        }
+        return;
+      }
+      delay(150);
+      continue;
+    }
+
+    if (ty >= 245 && ty < 265) {
+      if (ty < 255 && scrollOff + MAX_VISIBLE < (int)ssids.size()) scrollOff++;
+      else if (ty >= 255 && scrollOff > 0) scrollOff--;
+      delay(150);
+      continue;
+    }
+
+    int rowIdx = (ty - 32) / ROW_H + scrollOff;
+    if (rowIdx >= 0 && rowIdx < (int)ssids.size() && ty < 32 + MAX_VISIBLE * ROW_H) {
+      drainTouch();
+      String chosenSSID = ssids[rowIdx];
+      String newPass = virtualKeyboardInput("Passwort fuer " + chosenSSID + ":", "", 63);
+      WIFI_SSID = chosenSSID;
+      WIFI_PASS = newPass;
+      saveSettings();
+      tft.fillScreen(BG_COLOR);
+      tft.setTextColor(TEXT_COLOR, BG_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("Verbinde...", 120, 150, 2);
+      useWiFiTime = true;
+      saveSettings();
+      connectWiFi();
+      if (WiFi.status() == WL_CONNECTED) initTime();
+      return;
     }
     delay(150);
   }
@@ -2261,11 +2643,11 @@ void settingsApp() {
     String tzLabel = "Zeitzone: UTC" + String(tzHour >= 0 ? "+" : "") + String(tzHour);
     drawButton(10, 136, 220, 30, TFT_BLUE, tzLabel);
 
-    drawButton(10, 170, 220, 30, TFT_CYAN,    "WiFi neu verbinden");
-    drawButton(10, 204, 220, 30, TFT_PURPLE,  "WLAN-Daten aendern");
+    drawButton(10, 170, 220, 30, TFT_CYAN, "WiFi neu verbinden");
+    drawButton(10, 204, 220, 30, TFT_PURPLE, "WLAN scannen / aendern");
     drawButton(10, 238, 220, 30, TFT_MAGENTA, "SD-Karte neu laden");
-    drawButton(10, 272, 100, 34, 0x4208,      "Datei-Manager");
-    drawButton(120,272, 110, 34, TFT_RED,     "Zurueck");
+    drawButton(10, 272, 100, 34, 0x4208, "Datei-Manager");
+    drawButton(120, 272, 110, 34, TFT_RED, "Zurueck");
 
     int tx, ty;
     while (!getTouch(tx, ty)) delay(10);
@@ -2273,8 +2655,10 @@ void settingsApp() {
     if (isButtonPressed(tx, ty, 10, 34, 220, 30)) {
       useWiFiTime = !useWiFiTime;
       applyTheme();
-      if (useWiFiTime) { connectWiFi(); initTime(); }
-      else WiFi.disconnect(true);
+      if (useWiFiTime) {
+        connectWiFi();
+        initTime();
+      } else WiFi.disconnect(true);
       saveSettings();
 
     } else if (isButtonPressed(tx, ty, 10, 68, 220, 30)) {
@@ -2296,17 +2680,7 @@ void settingsApp() {
 
     } else if (isButtonPressed(tx, ty, 10, 204, 220, 30)) {
       drainTouch();
-      String newSSID = virtualKeyboardInput("WLAN-Name (SSID):", WIFI_SSID, 32);
-      newSSID.trim();
-      if (newSSID.length() > 0) WIFI_SSID = newSSID;
-      String newPass = virtualKeyboardInput("WLAN-Passwort:", WIFI_PASS, 63);
-      WIFI_PASS = newPass;
-      saveSettings();
-      tft.fillScreen(BG_COLOR);
-      tft.setTextColor(TFT_GREEN, BG_COLOR);
-      tft.setTextDatum(MC_DATUM);
-      tft.drawString("WLAN-Daten gespeichert", 120, 150, 2);
-      delay(1200);
+      wifiScanAndConfigure();
 
     } else if (isButtonPressed(tx, ty, 10, 238, 220, 30)) {
       initSD();
