@@ -1647,15 +1647,20 @@ void chatApp() {
         if (ty < 28) {
           if (tx < 55) { drainTouch(); state = 0; break; }
           if (tx > 180) {
-            String searchName = virtualKeyboardInput("Benutzername:", "", 30);
+            String searchName = virtualKeyboardInput("Benutzername (od. Teil):", "", 30);
             searchName.trim(); if (searchName == "") continue;
+            searchName.toLowerCase();
+            int found = -1;
             for (int i = 0; i < (int)userNames.size(); i++) {
-              if (userNames[i] == searchName) {
-                dmTarget = userNames[i];
-                dmPubkey = (i < (int)userPubkeys.size()) ? userPubkeys[i] : "";
-                isDM = true;
-                state = 4; break;
-              }
+              String un = userNames[i]; un.toLowerCase();
+              if (un.indexOf(searchName) >= 0) { found = i; break; }
+            }
+            if (found >= 0) {
+              int i = found;
+              dmTarget = userNames[i];
+              dmPubkey = (i < (int)userPubkeys.size()) ? userPubkeys[i] : "";
+              isDM = true;
+              state = 4; break;
             }
             if (state != 4) {
               tft.fillScreen(BG_COLOR);
@@ -1768,9 +1773,79 @@ void chatApp() {
             if (code == 200 || code == 201) {
               String resp = http.getString();
               int si = resp.indexOf("\"id\":\"");
-              if (si > 0) { currentGroupId = resp.substring(si+6); currentGroupId = currentGroupId.substring(0, currentGroupId.indexOf("\"")); currentGroupName = gname; isDM = false; http.end(); state = 4; break; }
+              if (si > 0) { currentGroupId = resp.substring(si+6); currentGroupId = currentGroupId.substring(0, currentGroupId.indexOf("\"")); currentGroupName = gname; isDM = false; }
+              http.end();
+              if (currentGroupId != "") {
+                tft.fillScreen(BG_COLOR);
+                tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
+                tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+                tft.setTextDatum(MC_DATUM);
+                tft.drawString("MITGLIEDER EINLADEN", 120, 14, 2);
+                std::vector<String> allUsers, allPubkeys;
+                http.begin(apiBase + "/api/users");
+                if (http.GET() == 200) {
+                  String uResp = http.getString(); int pos = 0;
+                  while (true) {
+                    int un = uResp.indexOf("\"username\":\"", pos);
+                    if (un < 0) break;
+                    String uname = uResp.substring(un+11); uname = uname.substring(0, uname.indexOf("\""));
+                    int upk = uResp.indexOf("\"pubkey\":\"", un);
+                    if (upk > 0) { String pkv = uResp.substring(upk+10); pkv = pkv.substring(0, pkv.indexOf("\"")); allUsers.push_back(uname); allPubkeys.push_back(pkv); }
+                    pos = un + 1;
+                  }
+                }
+                http.end();
+                int uscroll = 0;
+                while (true) {
+                  tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 60, BG_COLOR);
+                  int nu = min((int)allUsers.size() - uscroll, 6);
+                  for (int ui = 0; ui < nu; ui++) {
+                    int uy = 34 + ui * 36;
+                    tft.fillRoundRect(4, uy, 232, 32, 4, PANEL_COLOR);
+                    tft.setTextColor(TEXT_COLOR, PANEL_COLOR);
+                    tft.setTextDatum(TL_DATUM);
+                    tft.setCursor(12, uy + 8);
+                    tft.print(allUsers[uscroll + ui]);
+                  }
+                  int uby = SCREEN_H - 52;
+                  tft.fillRect(0, uby, SCREEN_W, 50, BG_COLOR);
+                  tft.drawFastHLine(0, uby, SCREEN_W, BORDER_COLOR);
+                  tft.fillRoundRect(10, uby + 6, 90, 36, 4, TFT_DARKGREY);
+                  tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
+                  tft.setTextDatum(MC_DATUM);
+                  tft.drawString("HOCH", 55, uby + 24, 2);
+                  tft.fillRoundRect(120, uby + 6, 110, 36, 4, TFT_GREEN);
+                  tft.drawString("FERTIG", 175, uby + 24, 2);
+                  int utx, uty;
+                  while (!getTouch(utx, uty)) delay(10);
+                  if (uty >= 34 && uty < 34 + 6 * 36) {
+                    int uidx = uscroll + (uty - 34) / 36;
+                    if (uidx < (int)allUsers.size() && uidx < (int)allPubkeys.size() && allPubkeys[uidx] != pubkey) {
+                      http.begin(apiBase + "/api/groups/" + currentGroupId + "/invite");
+                      http.addHeader("Content-Type", "application/json");
+                      http.POST("{\"pubkey\":\"" + allPubkeys[uidx] + "\"}");
+                      http.end();
+                      tft.fillRoundRect(4, 34 + (uidx - uscroll) * 36, 232, 32, 4, TFT_GREEN);
+                      tft.setTextColor(TFT_WHITE, TFT_GREEN);
+                      tft.setTextDatum(TL_DATUM);
+                      tft.setCursor(12, 34 + (uidx - uscroll) * 36 + 8);
+                      tft.print(allUsers[uidx] + " ✓");
+                    }
+                    delay(200); continue;
+                  }
+                  if (uty >= uby && uty < uby + 50) {
+                    if (utx < 115) { if (uscroll > 0) uscroll--; }
+                    else { state = 4; break; }
+                    continue;
+                  }
+                  if (uty < 28) { state = 4; break; }
+                  delay(130);
+                }
+                break;
+              }
             }
             http.end();
+            if (currentGroupId != "") { state = 4; break; }
           } else { delay(150); continue; }
         }
         if (ty >= by && ty < by + 50) {
@@ -2139,17 +2214,6 @@ void stundenplanApp() {
       if (periodScroll + maxVis < (int)periods.size()) { tft.fillTriangle(120, maxPeriodY - 2, 114, maxPeriodY - 10, 126, maxPeriodY - 10, TFT_LIGHTGREY); }
     }
     
-    // Period scroll arrows tap area
-    if (!periods.empty()) {
-      int maxVis = (maxPeriodY - 56) / 40;
-      if (ty >= 48 && ty < 60 && periodScroll > 0 && tx > 100 && tx < 140) {
-        periodScroll = max(0, periodScroll - 1); delay(200); continue;
-      }
-      if (ty >= maxPeriodY - 12 && ty < maxPeriodY + 2 && periodScroll + maxVis < (int)periods.size() && tx > 100 && tx < 140) {
-        periodScroll = min((int)periods.size() - maxVis, periodScroll + 1); delay(200); continue;
-      }
-    }
-
     // Bottom navigation
     int by = SCREEN_H - 34;
     tft.drawFastHLine(0, by, SCREEN_W, BORDER_COLOR);
@@ -2164,6 +2228,15 @@ void stundenplanApp() {
     while (!getTouch(tx, ty)) delay(10);
     
     if (ty < 28 && tx > 175) { drainTouch(); drawMenu(); return; }
+    
+    // Period scroll arrows
+    if (!periods.empty() && ty >= 48 && ty < 245) {
+      int maxVis = (maxPeriodY - 56) / 40;
+      if (tx > 100 && tx < 140) {
+        if (ty < 60 && periodScroll > 0) { periodScroll--; delay(200); continue; }
+        if (ty >= maxPeriodY - 14 && ty < maxPeriodY && periodScroll + maxVis < (int)periods.size()) { periodScroll++; delay(200); continue; }
+      }
+    }
     
     // Bottom bar navigation
     if (ty >= by) {
