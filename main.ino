@@ -319,7 +319,7 @@ void drawMenuIcon(int x, int y, const char* name) {
   if (arr) tft.pushImage(x + 2, y + 6, 24, 24, (uint16_t*)arr, TFT_BLACK);
 }
 
-// ================= MENU =================
+// ================= MENU (NEUES LAYOUT - 2-Spaltig) =================
 
 struct AppButton {
   int x, y, w, h;
@@ -327,15 +327,20 @@ struct AppButton {
   const char* label;
 };
 
+// NEU: 2-spaltiges Layout, 4 Reihen
 static const AppButton MENU_APPS[] = {
-  { 10, 20, 100, 50, TFT_BLUE, "Calc" },
-  { 130, 20, 100, 50, TFT_RED, "Draw" },
-  { 10, 80, 100, 50, TFT_GREEN, "Notes" },
-  { 130, 80, 100, 50, TFT_CYAN, "Chat" },
-  { 10, 140, 100, 50, TFT_MAGENTA, "Read" },
-  { 130, 140, 100, 50, TFT_ORANGE, "Settings" },
-  { 40, 200, 160, 40, 0x07E0, "Stundenplan" },
-  { 40, 245, 160, 40, TFT_PURPLE, "Stoppuhr" }  // NEU
+  // Reihe 1
+  { 10, 10, 105, 55, TFT_BLUE, "Calc" },
+  { 125, 10, 105, 55, TFT_RED, "Draw" },
+  // Reihe 2
+  { 10, 70, 105, 55, TFT_GREEN, "Notes" },
+  { 125, 70, 105, 55, TFT_CYAN, "Chat" },
+  // Reihe 3
+  { 10, 130, 105, 55, TFT_MAGENTA, "Read" },
+  { 125, 130, 105, 55, TFT_ORANGE, "Settings" },
+  // Reihe 4 - Stundenplan & Stoppuhr NEBENEINANDER
+  { 10, 190, 105, 55, 0x07E0, "Stundenplan" },
+  { 125, 190, 105, 55, TFT_PURPLE, "Stoppuhr" },
 };
 
 static const int MENU_APPS_COUNT = sizeof(MENU_APPS) / sizeof(MENU_APPS[0]);
@@ -343,18 +348,30 @@ static const int MENU_APPS_COUNT = sizeof(MENU_APPS) / sizeof(MENU_APPS[0]);
 void drawMenu() {
   applyTheme();
   tft.fillScreen(BG_COLOR);
+  
+  // Titel
+  tft.setTextColor(TEXT_COLOR, BG_COLOR);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString("School OS", 120, 5, 2);
+  tft.drawFastHLine(0, 20, SCREEN_W, BORDER_COLOR);
+  
   for (int i = 0; i < MENU_APPS_COUNT; i++) {
     const AppButton& b = MENU_APPS[i];
-    tft.fillRoundRect(b.x, b.y, b.w, b.h, 6, b.color);
-    tft.drawRoundRect(b.x, b.y, b.w, b.h, 6, darkMode ? TFT_WHITE : TFT_DARKGREY);
-    drawMenuIcon(b.x + 4, b.y + 5, b.label);
+    tft.fillRoundRect(b.x, b.y, b.w, b.h, 8, b.color);
+    tft.drawRoundRect(b.x, b.y, b.w, b.h, 8, darkMode ? TFT_WHITE : TFT_DARKGREY);
+    
+    // Icon
+    drawMenuIcon(b.x + 8, b.y + 6, b.label);
+    
+    // Text
     tft.setTextColor(TFT_WHITE);
     tft.setTextDatum(MC_DATUM);
-    tft.drawString(b.label, b.x + b.w / 2, b.y + b.h - 12, 2);
+    tft.drawString(b.label, b.x + b.w/2, b.y + b.h - 10, 2);
   }
+  
+  // Trennlinie zwischen Apps und Uhr
   tft.drawFastHLine(0, 250, SCREEN_W, BORDER_COLOR);
 }
-
 // ================= SD CARD =================
 
 void initSD() {
@@ -923,6 +940,8 @@ void setup() {
 
 // ================= LOOP =================
 
+// ================= LOOP =================
+
 void loop() {
   drawClock();
   int tx, ty;
@@ -935,11 +954,11 @@ void loop() {
         if (strcmp(b.label, "Calc") == 0) calculator();
         else if (strcmp(b.label, "Draw") == 0) drawing();
         else if (strcmp(b.label, "Notes") == 0) notesApp();
-        else if (strcmp(b.label, "Chat") == 0) chatApp();
+        else if (strcmp(b.label, "Chat") == 0) fakeChatApp();  // <-- GEÄNDERT
         else if (strcmp(b.label, "Read") == 0) showFileSelection();
         else if (strcmp(b.label, "Settings") == 0) settingsApp();
         else if (strcmp(b.label, "Stundenplan") == 0) stundenplanApp();
-        else if (strcmp(b.label, "Stoppuhr") == 0) stopwatchApp();  // NEU
+        else if (strcmp(b.label, "Stoppuhr") == 0) stopwatchApp();
         break;
       }
     }
@@ -2762,5 +2781,634 @@ void settingsApp() {
 // ================= STOPPUHR APP =================
 
 void stopwatchApp() {
+  drainTouch();
+  
+  // Modus: 0 = Stoppuhr, 1 = Timer
+  int mode = 0;
+  
+  // ===== STOPPUHR VARIABLEN =====
+  bool stopwatchRunning = false;
+  unsigned long stopwatchStartTime = 0;
+  unsigned long stopwatchElapsedMs = 0;
+  std::vector<unsigned long> splits;
+  
+  // ===== TIMER VARIABLEN =====
+  enum TimerState { IDLE, RUNNING, PAUSED, FINISHED };
+  TimerState timerState = IDLE;
+  unsigned long timerDuration = 60000; // 60 Sekunden Standard
+  unsigned long timerRemainingMs = 60000;
+  unsigned long timerStartTime = 0;
+  unsigned long timerPausedRemaining = 60000;
+  
+  // ===== GEMEINSAME VARIABLEN =====
+  unsigned long lastDisplayUpdate = 0;
+  bool uiDirty = true;
+  
+  auto formatTime = [](unsigned long ms) -> String {
+    unsigned long totalSec = ms / 1000;
+    unsigned long hours = totalSec / 3600;
+    unsigned long minutes = (totalSec % 3600) / 60;
+    unsigned long seconds = totalSec % 60;
+    unsigned long millis = (ms % 1000) / 10;
+    char buf[16];
+    if (hours > 0) {
+      snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu.%02lu", hours, minutes, seconds, millis);
+    } else {
+      snprintf(buf, sizeof(buf), "%02lu:%02lu.%02lu", minutes, seconds, millis);
+    }
+    return String(buf);
+  };
+  
+  auto formatTimeShort = [](unsigned long ms) -> String {
+    unsigned long totalSec = ms / 1000;
+    unsigned long hours = totalSec / 3600;
+    unsigned long minutes = (totalSec % 3600) / 60;
+    unsigned long seconds = totalSec % 60;
+    char buf[12];
+    if (hours > 0) {
+      snprintf(buf, sizeof(buf), "%02lu:%02lu:%02lu", hours, minutes, seconds);
+    } else {
+      snprintf(buf, sizeof(buf), "%02lu:%02lu", minutes, seconds);
+    }
+    return String(buf);
+  };
+  
+  auto drawUI = [&]() {
+    tft.fillScreen(BG_COLOR);
+    
+    // Header
+    tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
+    tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(mode == 0 ? "STOPPUHR" : "TIMER", 120, 14, 2);
+    
+    // Zurueck-Button
+    tft.fillRoundRect(2, 2, 40, 24, 3, TFT_RED);
+    tft.setTextColor(TFT_WHITE, TFT_RED);
+    tft.drawString("<", 22, 14, 2);
+    
+    // Mode Switch Button
+    tft.fillRoundRect(180, 2, 55, 24, 3, TFT_BLUE);
+    tft.setTextColor(TFT_WHITE, TFT_BLUE);
+    tft.drawString(mode == 0 ? "TIMER" : "STOPP", 207, 14, 1);
+    
+    if (mode == 0) {
+      // ===== STOPPUHR UI =====
+      // Haupt-Zeitanzeige
+      tft.fillRect(0, 32, SCREEN_W, 60, darkMode ? 0x1082 : 0xC618);
+      tft.drawRect(0, 32, SCREEN_W, 60, BORDER_COLOR);
+      tft.setTextColor(TFT_YELLOW, darkMode ? 0x1082 : 0xC618);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString(formatTime(stopwatchElapsedMs), 120, 62, 4);
+      
+      // Status-Anzeige
+      tft.setTextColor(stopwatchRunning ? TFT_GREEN : TFT_RED, BG_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString(stopwatchRunning ? "● LÄUFT" : "■ GESTOPPT", 120, 96, 1);
+      
+      // Steuerungs-Buttons
+      int buttonY = 110;
+      int buttonW = 55;
+      int spacing = 6;
+      int totalW = buttonW * 4 + spacing * 3;
+      int startX = (SCREEN_W - totalW) / 2;
+      
+      drawButton(startX, buttonY, buttonW, 40, stopwatchRunning ? TFT_RED : TFT_GREEN, 
+                 stopwatchRunning ? "STOP" : "START");
+      drawButton(startX + buttonW + spacing, buttonY, buttonW, 40, TFT_BLUE, "SPLIT");
+      drawButton(startX + (buttonW + spacing) * 2, buttonY, buttonW, 40, TFT_ORANGE, "RESET");
+      drawButton(startX + (buttonW + spacing) * 3, buttonY, buttonW, 40, TFT_DARKGREY, "MENU");
+      
+      // Split-Liste
+      int splitStartY = 160;
+      tft.drawFastHLine(0, splitStartY - 4, SCREEN_W, BORDER_COLOR);
+      tft.setTextColor(TEXT_COLOR, BG_COLOR);
+      tft.setTextDatum(TL_DATUM);
+      
+      int maxSplits = min((int)splits.size(), 6);
+      int startIdx = max(0, (int)splits.size() - 6);
+      
+      for (int i = 0; i < maxSplits; i++) {
+        int idx = startIdx + i;
+        int yPos = splitStartY + i * 26;
+        tft.setCursor(8, yPos + 4);
+        tft.setTextColor(TFT_LIGHTGREY, BG_COLOR);
+        tft.print("#" + String(idx + 1) + " ");
+        tft.setTextColor(TEXT_COLOR, BG_COLOR);
+        unsigned long splitTime = splits[idx];
+        tft.print(formatTime(splitTime));
+        
+        if (idx > 0) {
+          unsigned long diff = splitTime - splits[idx - 1];
+          tft.setTextColor(TFT_CYAN, BG_COLOR);
+          tft.setCursor(150, yPos + 4);
+          tft.print("+" + formatTime(diff));
+        }
+      }
+      
+    } else {
+      // ===== TIMER UI =====
+      // Haupt-Zeitanzeige
+      uint16_t bgColor = (timerState == FINISHED) ? TFT_RED : (darkMode ? 0x1082 : 0xC618);
+      tft.fillRect(0, 32, SCREEN_W, 60, bgColor);
+      tft.drawRect(0, 32, SCREEN_W, 60, BORDER_COLOR);
+      tft.setTextColor((timerState == FINISHED) ? TFT_WHITE : TFT_YELLOW, bgColor);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString(formatTimeShort(timerRemainingMs), 120, 62, 4);
+      
+      // Status-Anzeige
+      String statusText;
+      uint16_t statusColor;
+      switch(timerState) {
+        case IDLE: statusText = "■ BEREIT"; statusColor = TFT_YELLOW; break;
+        case RUNNING: statusText = "● LÄUFT"; statusColor = TFT_GREEN; break;
+        case PAUSED: statusText = "■ PAUSIERT"; statusColor = TFT_ORANGE; break;
+        case FINISHED: statusText = "● ABGELAUFEN!"; statusColor = TFT_RED; break;
+      }
+      tft.setTextColor(statusColor, BG_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString(statusText, 120, 96, 1);
+      
+      // Steuerungs-Buttons (5 Buttons nebeneinander)
+      int buttonY = 110;
+      int buttonW = 42;
+      int spacing = 4;
+      int totalW = buttonW * 5 + spacing * 4;
+      int startX = (SCREEN_W - totalW) / 2;
+      
+      // START/PAUSE/WEITER Button
+      String startLabel;
+      uint16_t startColor;
+      if (timerState == IDLE || timerState == FINISHED) {
+        startLabel = "START";
+        startColor = TFT_GREEN;
+      } else if (timerState == RUNNING) {
+        startLabel = "PAUSE";
+        startColor = TFT_ORANGE;
+      } else { // PAUSED
+        startLabel = "WEITER";
+        startColor = TFT_BLUE;
+      }
+      drawButton(startX, buttonY, buttonW, 40, startColor, startLabel);
+      
+      // RESET Button
+      drawButton(startX + buttonW + spacing, buttonY, buttonW, 40, TFT_RED, "RESET");
+      
+      // +1 MIN Button
+      drawButton(startX + (buttonW + spacing) * 2, buttonY, buttonW, 40, TFT_CYAN, "+1M");
+      
+      // -1 MIN Button
+      drawButton(startX + (buttonW + spacing) * 3, buttonY, buttonW, 40, TFT_PURPLE, "-1M");
+      
+      // +10 SEK Button (NEU)
+      drawButton(startX + (buttonW + spacing) * 4, buttonY, buttonW, 40, TFT_YELLOW, "+10S");
+      
+      // Zeit-Einstellung (nur im IDLE Modus sichtbar)
+      if (timerState == IDLE || timerState == FINISHED) {
+        tft.setTextColor(TEXT_COLOR, BG_COLOR);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Tippe +/- um Zeit einzustellen", 120, 165, 1);
+        
+        // Aktuelle Zeit anzeigen
+        tft.setTextColor(TFT_CYAN, BG_COLOR);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Aktuell: " + formatTimeShort(timerDuration), 120, 185, 2);
+        
+        // Fortschrittsbalken (wenn läuft)
+      } else if (timerState == RUNNING || timerState == PAUSED) {
+        int progressY = 170;
+        tft.drawFastHLine(10, progressY, SCREEN_W - 20, BORDER_COLOR);
+        float progress = 1.0 - ((float)timerRemainingMs / (float)timerDuration);
+        if (progress < 0) progress = 0;
+        if (progress > 1) progress = 1;
+        int barWidth = (SCREEN_W - 20) * progress;
+        tft.fillRect(10, progressY, barWidth, 8, TFT_GREEN);
+        tft.drawRect(10, progressY, SCREEN_W - 20, 8, BORDER_COLOR);
+        
+        // Verbleibende Zeit in Minuten/Sekunden
+        tft.setTextColor(TEXT_COLOR, BG_COLOR);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString("Verbleibend: " + formatTimeShort(timerRemainingMs), 120, 195, 1);
+      }
+    }
+    uiDirty = false;
+  };
+  
+  // Initiales Zeichnen
+  drawUI();
+  
+  // Haupt-Loop
+  while (true) {
+    unsigned long now = millis();
+    
+    // ===== STOPPUHR UPDATE =====
+    if (mode == 0 && stopwatchRunning) {
+      stopwatchElapsedMs = now - stopwatchStartTime;
+      if (now - lastDisplayUpdate > 50) {
+        // Nur Zeitanzeige updaten
+        tft.fillRect(0, 32, SCREEN_W, 60, darkMode ? 0x1082 : 0xC618);
+        tft.drawRect(0, 32, SCREEN_W, 60, BORDER_COLOR);
+        tft.setTextColor(TFT_YELLOW, darkMode ? 0x1082 : 0xC618);
+        tft.setTextDatum(MC_DATUM);
+        tft.drawString(formatTime(stopwatchElapsedMs), 120, 62, 4);
+        lastDisplayUpdate = now;
+      }
+    }
+    
+    // ===== TIMER UPDATE =====
+    if (mode == 1 && timerState == RUNNING) {
+      unsigned long elapsed = now - timerStartTime;
+      if (elapsed >= timerPausedRemaining) {
+        timerRemainingMs = 0;
+        timerState = FINISHED;
+        uiDirty = true;
+        // Alarm - kurzer Piepton oder Blinken
+        for (int i = 0; i < 3; i++) {
+          tft.fillRect(0, 32, SCREEN_W, 60, TFT_RED);
+          delay(200);
+          tft.fillRect(0, 32, SCREEN_W, 60, TFT_WHITE);
+          delay(200);
+        }
+        drawUI();
+      } else {
+        timerRemainingMs = timerPausedRemaining - elapsed;
+        if (now - lastDisplayUpdate > 50) {
+          // Nur Zeitanzeige updaten
+          uint16_t bgColor = darkMode ? 0x1082 : 0xC618;
+          tft.fillRect(0, 32, SCREEN_W, 60, bgColor);
+          tft.drawRect(0, 32, SCREEN_W, 60, BORDER_COLOR);
+          tft.setTextColor(TFT_YELLOW, bgColor);
+          tft.setTextDatum(MC_DATUM);
+          tft.drawString(formatTimeShort(timerRemainingMs), 120, 62, 4);
+          
+          // Fortschrittsbalken updaten
+          int progressY = 170;
+          tft.drawFastHLine(10, progressY, SCREEN_W - 20, BG_COLOR);
+          float progress = 1.0 - ((float)timerRemainingMs / (float)timerDuration);
+          if (progress < 0) progress = 0;
+          if (progress > 1) progress = 1;
+          int barWidth = (SCREEN_W - 20) * progress;
+          tft.fillRect(10, progressY, barWidth, 8, TFT_GREEN);
+          tft.drawRect(10, progressY, SCREEN_W - 20, 8, BORDER_COLOR);
+          
+          lastDisplayUpdate = now;
+        }
+      }
+    }
+    
+    int tx, ty;
+    if (!getTouch(tx, ty)) {
+      delay(10);
+      continue;
+    }
+    
+    // ===== HEADER BUTTONS =====
+    if (ty < 28) {
+      if (tx < 45) {
+        // Zurueck
+        drainTouch();
+        drawMenu();
+        return;
+      } else if (tx > 175) {
+        // Mode Switch
+        drainTouch();
+        mode = (mode == 0) ? 1 : 0;
+        // Timer-Reset wenn zu Timer wechseln
+        if (mode == 1 && timerState == IDLE) {
+          timerRemainingMs = timerDuration;
+        }
+        drawUI();
+      }
+      delay(150);
+      continue;
+    }
+    
+    // ===== STOPPUHR BUTTONS =====
+    if (mode == 0 && ty >= 110 && ty < 150) {
+      int buttonW = 55;
+      int spacing = 6;
+      int totalW = buttonW * 4 + spacing * 3;
+      int startX = (SCREEN_W - totalW) / 2;
+      
+      if (tx >= startX && tx < startX + buttonW) {
+        // START/STOP
+        drainTouch();
+        if (stopwatchRunning) {
+          stopwatchRunning = false;
+          drawUI();
+        } else {
+          stopwatchRunning = true;
+          stopwatchStartTime = millis() - stopwatchElapsedMs;
+          drawUI();
+        }
+      } else if (tx >= startX + buttonW + spacing && tx < startX + (buttonW + spacing) * 2) {
+        // SPLIT
+        drainTouch();
+        if (stopwatchRunning || stopwatchElapsedMs > 0) {
+          splits.push_back(stopwatchElapsedMs);
+          drawUI();
+        }
+      } else if (tx >= startX + (buttonW + spacing) * 2 && tx < startX + (buttonW + spacing) * 3) {
+        // RESET
+        drainTouch();
+        stopwatchRunning = false;
+        stopwatchElapsedMs = 0;
+        splits.clear();
+        drawUI();
+      } else if (tx >= startX + (buttonW + spacing) * 3 && tx < startX + (buttonW + spacing) * 4) {
+        // MENU
+        drainTouch();
+        drawMenu();
+        return;
+      }
+      delay(200);
+      continue;
+    }
+    
+    // ===== TIMER BUTTONS =====
+    if (mode == 1 && ty >= 110 && ty < 150) {
+      int buttonW = 42;
+      int spacing = 4;
+      int totalW = buttonW * 5 + spacing * 4;
+      int startX = (SCREEN_W - totalW) / 2;
+      
+      // START/PAUSE/WEITER (Index 0)
+      if (tx >= startX && tx < startX + buttonW) {
+        drainTouch();
+        if (timerState == IDLE || timerState == FINISHED) {
+          // START
+          if (timerRemainingMs == 0) {
+            timerRemainingMs = timerDuration;
+          }
+          timerState = RUNNING;
+          timerPausedRemaining = timerRemainingMs;
+          timerStartTime = millis();
+          drawUI();
+        } else if (timerState == RUNNING) {
+          // PAUSE
+          timerState = PAUSED;
+          timerPausedRemaining = timerRemainingMs;
+          drawUI();
+        } else if (timerState == PAUSED) {
+          // WEITER
+          timerState = RUNNING;
+          timerStartTime = millis();
+          drawUI();
+        }
+      }
+      // RESET (Index 1)
+      else if (tx >= startX + buttonW + spacing && tx < startX + (buttonW + spacing) * 2) {
+        drainTouch();
+        timerState = IDLE;
+        timerRemainingMs = timerDuration;
+        drawUI();
+      }
+      // +1 MIN (Index 2)
+      else if (tx >= startX + (buttonW + spacing) * 2 && tx < startX + (buttonW + spacing) * 3) {
+        drainTouch();
+        if (timerState == IDLE || timerState == FINISHED) {
+          timerDuration += 60000;
+          if (timerDuration > 3600000) timerDuration = 3600000; // Max 1 Stunde
+          timerRemainingMs = timerDuration;
+          drawUI();
+        }
+      }
+      // -1 MIN (Index 3)
+      else if (tx >= startX + (buttonW + spacing) * 3 && tx < startX + (buttonW + spacing) * 4) {
+        drainTouch();
+        if (timerState == IDLE || timerState == FINISHED) {
+          if (timerDuration >= 60000) {
+            timerDuration -= 60000;
+            if (timerDuration < 1000) timerDuration = 1000; // Min 1 Sekunde
+            timerRemainingMs = timerDuration;
+            drawUI();
+          }
+        }
+      }
+      // +10 SEK (Index 4) - NEU
+      else if (tx >= startX + (buttonW + spacing) * 4 && tx < startX + (buttonW + spacing) * 5) {
+        drainTouch();
+        if (timerState == IDLE || timerState == FINISHED) {
+          timerDuration += 10000; // 10 Sekunden
+          if (timerDuration > 3600000) timerDuration = 3600000; // Max 1 Stunde
+          timerRemainingMs = timerDuration;
+          drawUI();
+        }
+      }
+      delay(200);
+      continue;
+    }
+    
+    delay(10);
+  }
+}
 
+// ================= FAKE CHAT APP =================
+
+void fakeChatApp() {
+  drainTouch();
+  
+  struct Message {
+    String sender;
+    String text;
+    bool isMe;
+  };
+  
+  // Vordefinierte Fake-Konversation
+  std::vector<Message> messages = {
+    {"Anna", "Hey! Wie gehts?", false},
+    {"Ich", "Gut! Und dir?", true},
+    {"Anna", "Auch gut! Hast du die Hausaufgaben gemacht?", false},
+    {"Ich", "Ja, Mathe war echt schwer heute...", true},
+    {"Anna", "Oh ja, die Gleichungen waren kompliziert!", false},
+    {"Anna", "Sollen wir morgen zusammen lernen?", false},
+    {"Ich", "Gute Idee! Um 14 Uhr in der Bib?", true},
+    {"Anna", "Perfekt! Bis dann!", false},
+    {"Ich", "Bis morgen! 😊", true},
+    {"Tom", "Hey, hast du das Spiel gestern gesehen?", false},
+    {"Ich", "Ne, habs verpasst. Wer hat gewonnen?", true},
+    {"Tom", "Bayern 3:1! War super!", false},
+    {"Ich", "Nice! Muss ich mir die Highlights ansehen", true},
+    {"Lisa", "Erinnerung: Projektabgabe morgen!", false},
+    {"Ich", "Danke für die Erinnerung! Fast vergessen...", true},
+    {"Lisa", "Kein Problem! Hast du alles fertig?", false},
+    {"Ich", "Ja, muss nur noch ausdrucken", true},
+    {"Lisa", "Super, dann bis morgen in der Schule!", false},
+  };
+  
+  int scrollOffset = max(0, (int)messages.size() - 8);  // Zeige letzte 8 Nachrichten
+  String chatInput = "";
+  int kbMode = 0;
+  bool dirty = true;
+  unsigned long fakeReplyTimer = 0;
+  bool waitingForReply = false;
+  int replyIndex = -1;
+  
+  // Vordefinierte Antworten für Fake-Gespräch
+  std::vector<String> autoReplies = {
+    "😂😂😂",
+    "Ja, das stimmt!",
+    "Haha, echt witzig!",
+    "Ok, mach ich!",
+    "Alles klar 👍",
+    "Klingt gut!",
+    "Muss los, tschüss!",
+    "Später mehr..."
+  };
+  
+  while (true) {
+    if (dirty) {
+      tft.fillScreen(BG_COLOR);
+      
+      // Header
+      tft.fillRect(0, 0, 240, 24, HEADER_COLOR);
+      tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
+      tft.setTextDatum(MC_DATUM);
+      tft.drawString("CHAT (Demo)", 120, 4, 2);
+      
+      // Zurück-Button
+      tft.fillRoundRect(2, 1, 36, 22, 3, TFT_RED);
+      tft.setTextColor(TFT_WHITE, TFT_RED);
+      tft.drawString("<", 20, 12, 2);
+      
+      // Online-Status
+      tft.fillCircle(210, 12, 5, TFT_GREEN);
+      tft.setTextColor(TFT_GREEN, HEADER_COLOR);
+      tft.setTextDatum(TL_DATUM);
+      tft.setCursor(218, 6);
+      tft.print("3");
+      
+      // Nachrichten anzeigen
+      tft.setTextDatum(TL_DATUM);
+      int yPos = 28;
+      int maxMessages = min(8, (int)messages.size() - scrollOffset);
+      
+      for (int i = 0; i < maxMessages; i++) {
+        int idx = scrollOffset + i;
+        if (idx >= (int)messages.size()) break;
+        
+        Message& msg = messages[idx];
+        
+        // Nachrichtenhintergrund
+        int textW = tft.textWidth(msg.text, 1) + 12;
+        if (textW > 180) textW = 180;
+        int textH = 16;
+        int msgX = msg.isMe ? (240 - textW - 8) : 8;
+        
+        uint16_t bubbleColor = msg.isMe ? TFT_BLUE : TFT_DARKGREY;
+        tft.fillRoundRect(msgX, yPos, textW, textH, 5, bubbleColor);
+        
+        // Absender
+        if (!msg.isMe) {
+          tft.setTextColor(TFT_CYAN, bubbleColor);
+          tft.setCursor(msgX + 4, yPos + 1);
+          tft.print(msg.sender + ":");
+        }
+        
+        // Text
+        tft.setTextColor(TFT_WHITE, bubbleColor);
+        int textStart = msg.isMe ? msgX + 4 : msgX + tft.textWidth(msg.sender + ":", 1) + 6;
+        tft.setCursor(textStart, yPos + 1);
+        tft.print(msg.text);
+        
+        yPos += textH + 4;
+        if (yPos > 156) break;
+      }
+      
+      // Scroll-Indikator
+      if (scrollOffset > 0) {
+        tft.fillTriangle(120, 26, 114, 20, 126, 20, TFT_LIGHTGREY);
+      }
+      if (scrollOffset + 8 < (int)messages.size()) {
+        tft.fillTriangle(120, 160, 114, 166, 126, 166, TFT_LIGHTGREY);
+      }
+      
+      // Trennlinie
+      tft.drawFastHLine(0, 163, 240, BORDER_COLOR);
+      
+      // Eingabezeile
+      tft.setTextColor(TFT_CYAN, BG_COLOR);
+      tft.setCursor(4, 166);
+      String preview = "> " + chatInput;
+      if (preview.length() > 32) preview = preview.substring(preview.length() - 32);
+      tft.print(preview);
+      
+      if ((millis() / 500) % 2 == 0) {
+        int cw = tft.textWidth(preview, 1);
+        tft.fillRect(4 + cw + 2, 166, 6, 12, TEXT_COLOR);
+      }
+      
+      // Keyboard
+      drawKeyboard(kbMode, 182);
+      
+      dirty = false;
+    }
+    
+    // Fake-Antwort Timer prüfen
+    if (waitingForReply && millis() - fakeReplyTimer > 1500) {
+      waitingForReply = false;
+      String reply = autoReplies[random(autoReplies.size())];
+      
+      // Zufälligen Absender
+      String senders[] = {"Anna", "Tom", "Lisa", "Max", "Sarah"};
+      String sender = senders[random(5)];
+      
+      messages.push_back({sender, reply, false});
+      scrollOffset = max(0, (int)messages.size() - 8);
+      dirty = true;
+    }
+    
+    int tx, ty;
+    if (!getTouch(tx, ty)) {
+      delay(10);
+      continue;
+    }
+    
+    // Header-Buttons
+    if (ty < 24) {
+      if (tx < 40) {
+        drainTouch();
+        drawMenu();
+        return;
+      }
+      delay(150);
+      continue;
+    }
+    
+    // Scroll-Bereich (oberer Teil der Nachrichten)
+    if (ty >= 24 && ty < 164) {
+      if (ty < 30 && scrollOffset > 0) {
+        scrollOffset--;
+        dirty = true;
+      } else if (ty > 155 && scrollOffset + 8 < (int)messages.size()) {
+        scrollOffset++;
+        dirty = true;
+      }
+      delay(150);
+      continue;
+    }
+    
+    // Keyboard-Bereich
+    if (ty >= 182) {
+      int res = handleKeyboardTouch(tx, ty, chatInput, kbMode, 182);
+      
+      if (res == 2 && chatInput.length() > 0) {
+        // Nachricht senden
+        chatInput.trim();
+        if (chatInput.length() > 0) {
+          messages.push_back({"Ich", chatInput, true});
+          chatInput = "";
+          scrollOffset = max(0, (int)messages.size() - 8);
+          dirty = true;
+          
+          // Fake-Antwort vorbereiten (nach 1.5 Sekunden)
+          waitingForReply = true;
+          fakeReplyTimer = millis();
+        }
+      } else if (res == 1) {
+        dirty = true;
+      }
+      delay(50);
+    }
+  }
 }
