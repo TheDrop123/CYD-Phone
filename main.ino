@@ -1264,7 +1264,8 @@ void chatApp() {
     }
   }
   int state = (pubkey == "") ? -1 : 0;
-  String dmTarget = "", currentGroupId = "", currentGroupName = "";
+  String dmTarget = "", dmPubkey = "", currentGroupId = "", currentGroupName = "";
+  bool isDM = false;
   while (true) {
     if (state == -1) {
       tft.fillScreen(BG_COLOR);
@@ -1360,7 +1361,8 @@ void chatApp() {
       else if (isButtonPressed(tx, ty, 130, 190, 100, 30)) { drainTouch(); drawMenu(); return; }
       delay(150);
     } else if (state == 1) {
-      std::vector<String> users;
+      std::vector<String> userNames;
+      std::vector<String> userPubkeys;
       tft.fillScreen(BG_COLOR);
       tft.fillRect(0, 0, SCREEN_W, 28, HEADER_COLOR);
       tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
@@ -1376,7 +1378,13 @@ void chatApp() {
           int un = resp.indexOf("\"username\":\"", pos);
           if (un < 0) break;
           String u = resp.substring(un+11); u = u.substring(0, u.indexOf("\""));
-          if (u != username) users.push_back(u);
+          int pk = resp.indexOf("\"pubkey\":\"", un);
+          if (pk > 0) {
+            String pkv = resp.substring(pk+10); pkv = pkv.substring(0, pkv.indexOf("\""));
+            if (u != username) { userNames.push_back(u); userPubkeys.push_back(pkv); }
+          } else {
+            if (u != username) userNames.push_back(u);
+          }
           pos = un + 1;
         }
       }
@@ -1384,28 +1392,33 @@ void chatApp() {
       int scroll = 0;
       while (true) {
         tft.fillRect(0, 30, SCREEN_W, SCREEN_H - 30, BG_COLOR);
-        int n = min((int)users.size() - scroll, 6);
+        int n = min((int)userNames.size() - scroll, 6);
         for (int i = 0; i < n; i++) {
           int y = 34 + i * 36;
           tft.fillRoundRect(4, y, 232, 32, 4, PANEL_COLOR);
           tft.setTextColor(TEXT_COLOR, PANEL_COLOR);
           tft.setTextDatum(TL_DATUM);
           tft.setCursor(12, y + 8);
-          tft.print(users[scroll + i]);
+          tft.print(userNames[scroll + i]);
         }
         if (scroll > 0) tft.fillTriangle(120, 252, 110, 262, 130, 262, TFT_LIGHTGREY);
-        if (scroll + 6 < (int)users.size()) tft.fillTriangle(120, 250, 110, 240, 130, 240, TFT_LIGHTGREY);
+        if (scroll + 6 < (int)userNames.size()) tft.fillTriangle(120, 250, 110, 240, 130, 240, TFT_LIGHTGREY);
         int tx, ty;
         while (!getTouch(tx, ty)) delay(10);
         if (ty < 28 && tx > 175) { drainTouch(); state = 0; break; }
         if (ty >= 34 && ty < 34 + 6 * 36) {
           int idx = scroll + (ty - 34) / 36;
-          if (idx < (int)users.size()) { dmTarget = users[idx]; state = 3; break; }
+          if (idx < (int)userNames.size()) {
+            dmTarget = userNames[idx];
+            dmPubkey = (idx < (int)userPubkeys.size()) ? userPubkeys[idx] : "";
+            isDM = true;
+            state = 4; break;
+          }
         }
         if (ty >= 245 && ty < 265) {
           int c = 120;
           if (tx > c - 10 && tx < c + 10) {
-            if (ty < 255 && scroll + 6 < (int)users.size()) scroll++;
+            if (ty < 255 && scroll + 6 < (int)userNames.size()) scroll++;
             else if (ty >= 255 && scroll > 0) scroll--;
           }
         }
@@ -1468,7 +1481,7 @@ void chatApp() {
             if (code == 200 || code == 201) {
               String resp = http.getString();
               int si = resp.indexOf("\"id\":\"");
-              if (si > 0) { currentGroupId = resp.substring(si+6); currentGroupId = currentGroupId.substring(0, currentGroupId.indexOf("\"")); currentGroupName = gname; http.end(); state = 4; break; }
+              if (si > 0) { currentGroupId = resp.substring(si+6); currentGroupId = currentGroupId.substring(0, currentGroupId.indexOf("\"")); currentGroupName = gname; isDM = false; http.end(); state = 4; break; }
             }
             http.end();
           } else { drainTouch(); state = 0; break; }
@@ -1486,65 +1499,38 @@ void chatApp() {
         }
         if (ty >= 34 && ty < 34 + 6 * 36) {
           int idx = scroll + (ty - 34) / 36;
-          if (idx < (int)groups.size()) { currentGroupId = groups[idx].id; currentGroupName = groups[idx].name; state = 4; break; }
+          if (idx < (int)groups.size()) { currentGroupId = groups[idx].id; currentGroupName = groups[idx].name; isDM = false; state = 4; break; }
         }
         delay(130);
       }
     } else if (state == 3) {
-      String name1 = username, name2 = dmTarget;
-      String dmGN = name1 < name2 ? "DM:" + name1 + "-" + name2 : "DM:" + name2 + "-" + name1;
-      String dmGid = "";
-      http.begin(apiBase + "/api/groups?pubkey=" + pubkey);
-      if (http.GET() == 200) {
-        String resp = http.getString(); int pos = 0;
-        while (true) {
-          int si = resp.indexOf("\"id\":\"", pos);
-          if (si < 0) break;
-          String gid = resp.substring(si+6); gid = gid.substring(0, gid.indexOf("\""));
-          int sn = resp.indexOf("\"name\":\"", si);
-          if (sn > 0) { String gn = resp.substring(sn+8); gn = gn.substring(0, gn.indexOf("\"")); if (gn == dmGN) { dmGid = gid; break; } }
-          pos = si + 1;
-        }
-      }
-      http.end();
-      if (dmGid == "") {
-        tft.fillScreen(BG_COLOR);
-        tft.setTextColor(TFT_YELLOW, BG_COLOR);
-        tft.setTextDatum(MC_DATUM);
-        tft.drawString("Erstelle DM...", 120, 100, 2);
-        http.begin(apiBase + "/api/groups");
-        http.addHeader("Content-Type", "application/json");
-        int code = http.POST("{\"name\":\"" + dmGN + "\",\"ownerPubkey\":\"" + pubkey + "\"}");
-        if (code == 200 || code == 201) {
-          String resp = http.getString();
-          int si = resp.indexOf("\"id\":\"");
-          if (si > 0) { dmGid = resp.substring(si+6); dmGid = dmGid.substring(0, dmGid.indexOf("\"")); }
-          http.end();
-          if (dmGid != "") {
-            http.begin(apiBase + "/api/users");
-            if (http.GET() == 200) {
-              String uResp = http.getString(); int pos = 0;
-              while (true) {
-                int un = uResp.indexOf("\"username\":\"", pos);
-                if (un < 0) break;
-                String u = uResp.substring(un+11); u = u.substring(0, u.indexOf("\""));
-                int pk = uResp.indexOf("\"pubkey\":\"", un);
-                if (pk > 0) { String pkv = uResp.substring(pk+10); pkv = pkv.substring(0, pkv.indexOf("\"")); if (u == dmTarget) { http.begin(apiBase + "/api/groups/" + dmGid + "/invite"); http.addHeader("Content-Type", "application/json"); http.POST("{\"pubkey\":\"" + pkv + "\"}"); http.end(); break; } }
-                pos = un + 1;
-              }
-            }
-            http.end();
+      if (dmPubkey == "") {
+        http.begin(apiBase + "/api/users");
+        if (http.GET() == 200) {
+          String uResp = http.getString(); int pos = 0;
+          while (true) {
+            int un = uResp.indexOf("\"username\":\"", pos);
+            if (un < 0) break;
+            String u = uResp.substring(un+11); u = u.substring(0, u.indexOf("\""));
+            int pk = uResp.indexOf("\"pubkey\":\"", un);
+            if (pk > 0) { String pkv = uResp.substring(pk+10); pkv = pkv.substring(0, pkv.indexOf("\"")); if (u == dmTarget) { dmPubkey = pkv; break; } }
+            pos = un + 1;
           }
-        } else { http.end(); }
+        }
+        http.end();
       }
-      if (dmGid == "") { state = 1; continue; }
-      currentGroupId = dmGid; currentGroupName = dmTarget; state = 4;
+      if (dmPubkey == "") { state = 1; continue; }
+      isDM = true; state = 4;
     } else if (state == 4) {
       std::vector<String> messages;
       String chatInput = ""; int kbMode = 0;
       unsigned long lastPoll = 0; bool dirty = true;
       auto fetchMessages = [&]() {
-        http.begin(apiBase + "/api/messages?groupId=" + currentGroupId);
+        if (isDM && dmPubkey != "") {
+          http.begin(apiBase + "/api/messages?pubkey=" + pubkey + "&otherPubkey=" + dmPubkey);
+        } else {
+          http.begin(apiBase + "/api/messages?groupId=" + currentGroupId);
+        }
         if (http.GET() == 200) {
           String mResp = http.getString(); messages.clear(); int pos = 0;
           while (true) {
@@ -1564,7 +1550,8 @@ void chatApp() {
           tft.setTextColor(TEXT_COLOR, HEADER_COLOR);
           tft.setTextDatum(TL_DATUM);
           tft.setCursor(4, 8);
-          String h = currentGroupName; if (h.length() > 16) h = h.substring(0, 15) + "~";
+          String h = isDM ? dmTarget : currentGroupName;
+          if (h.length() > 16) h = h.substring(0, 15) + "~";
           tft.print(h);
           tft.fillRoundRect(178, 2, 28, 24, 3, TFT_RED);
           tft.setTextColor(TFT_WHITE, TFT_RED);
@@ -1605,7 +1592,7 @@ void chatApp() {
         }
         int tx, ty;
         if (!getTouch(tx, ty)) {
-          if (millis() - lastPoll > 3000) {
+          if (millis() - lastPoll > 2000) {
             int oldSz = messages.size();
             fetchMessages();
             if ((int)messages.size() != oldSz) dirty = true;
@@ -1640,11 +1627,15 @@ void chatApp() {
             chatInput.replace("\\", "\\\\"); chatInput.replace("\"", "\\\"");
             http.begin(apiBase + "/api/messages");
             http.addHeader("Content-Type", "application/json");
-            http.POST("{\"groupId\":\"" + currentGroupId + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + username + ":" + chatInput + "\"}");
+            if (isDM && dmPubkey != "") {
+              http.POST("{\"recipientPubkey\":\"" + dmPubkey + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + username + ":" + chatInput + "\"}");
+            } else {
+              http.POST("{\"groupId\":\"" + currentGroupId + "\",\"senderPubkey\":\"" + pubkey + "\",\"senderPrivkey\":\"" + privkey + "\",\"content\":\"" + username + ":" + chatInput + "\"}");
+            }
             http.end(); chatInput = ""; fetchMessages(); dirty = true;
           } else if (res == 1) dirty = true;
         }
-        delay(130);
+        delay(20);
       }
     }
     delay(10);
@@ -1779,6 +1770,8 @@ void stundenplanApp() {
     drainTouch(); drawMenu(); return;
   }
   static const char* DOW[] = {"Mo","Di","Mi","Do","Fr","Sa","So"};
+  if (viewDayOffset < 0) viewDayOffset = 0;
+  else if (viewDayOffset > 4) viewDayOffset = 4;
 
   while (true) {
     int vy = cachedMonY, vm = cachedMonM, vd = cachedMonD + viewDayOffset;
@@ -1855,7 +1848,7 @@ void stundenplanApp() {
       if (tx < 40) {
         viewDayOffset--;
         if (viewDayOffset < 0) {
-          viewDayOffset = 6;
+          viewDayOffset = 4;
           mondayDay = cachedMonD - 7;
           mondayMon = cachedMonM; mondayYear = cachedMonY;
           if (mondayDay < 1) { mondayMon--; if (mondayMon < 1) { mondayMon = 12; mondayYear--; } mondayDay += dim[mondayMon - 1]; }
@@ -1864,7 +1857,7 @@ void stundenplanApp() {
         delay(200); continue;
       } else if (tx > 200) {
         viewDayOffset++;
-        if (viewDayOffset > 6) {
+        if (viewDayOffset > 4) {
           viewDayOffset = 0;
           mondayDay = cachedMonD + 7;
           mondayMon = cachedMonM; mondayYear = cachedMonY;
