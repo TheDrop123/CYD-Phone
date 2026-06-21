@@ -42,7 +42,7 @@ long GMT_OFFSET_SEC = 3600;
 int DAYLIGHT_OFFSET_SEC = 3600;
 
 // ============ FEATURE TOGGLES ============
-bool useWiFiTime = true;
+bool useWiFiTime = false;
 bool darkMode = false;  // Dark Mode: true = dunkel, false = hell
 
 // ============ GLOBALE STRUCTS ============
@@ -121,7 +121,7 @@ void loadSettings() {
 // ============ OBJECTS ============
 TFT_eSPI tft = TFT_eSPI();
 
-// touch uses default SPI bus with custom pins
+SPIClass touchscreenSPI = SPIClass(HSPI);
 XPT2046_Touchscreen touchscreen(XPT2046_CS, XPT2046_IRQ);
 
 // Forward declarations
@@ -724,7 +724,7 @@ void getKeyboardLayout(int mode, const char* rows[3][12], int counts[3]) {
   static const char* low2[] = { "y", "x", "c", "v", "b", "n", "m" };
   static const char* up0[] = { "Q", "W", "E", "R", "T", "Z", "U", "I", "O", "P" };
   static const char* up1[] = { "A", "S", "D", "F", "G", "H", "J", "K", "L" };
-  static const char* up2[] = { "Y", "X", "C", "V", "B", "N", "M" };
+  static const char* up2[] = { "Y", "X", "C", "V", "B", "N", "M" ,"\n"};
   static const char* num0[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "0" };
   static const char* num1[] = { "-", "_", ".", ",", "!", "?", ";", ":" };
   static const char* num2[] = { "+", "*", "\"", "'", "/", "(", ")" };
@@ -894,8 +894,8 @@ void setup() {
   initSD();
   loadSettings();
   applyTheme();
-  SPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
-  touchscreen.begin();
+  touchscreenSPI.begin(XPT2046_CLK, XPT2046_MISO, XPT2046_MOSI, XPT2046_CS);
+  touchscreen.begin(touchscreenSPI);
   touchscreen.setRotation(2);
   if (useWiFiTime) {
     connectWiFi();
