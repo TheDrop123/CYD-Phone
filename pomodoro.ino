@@ -1,17 +1,12 @@
-// ================= STOPPUHR APP =================
+// ================= POMODORO APP =================
 
-void stopwatchApp() {
+void pomodoroApp() {
   drainTouch();
   
   // Modus: 0 = Stoppuhr, 1 = Timer
   int mode = 0;
   
-  // ===== STOPPUHR VARIABLEN =====
-  bool stopwatchRunning = false;
-  unsigned long stopwatchStartTime = 0;
-  unsigned long stopwatchElapsedMs = 0;
-  std::vector<unsigned long> splits;
-  
+
   // ===== TIMER VARIABLEN =====
   enum TimerState { IDLE, RUNNING, PAUSED, FINISHED };
   TimerState timerState = IDLE;
@@ -72,61 +67,7 @@ void stopwatchApp() {
     tft.setTextColor(TFT_WHITE, TFT_BLUE);
     tft.drawString(mode == 0 ? "TIMER" : "STOPP", 207, 14, 1);
     
-    if (mode == 0) {
-      // ===== STOPPUHR UI =====
-      // Haupt-Zeitanzeige
-      tft.fillRect(0, 32, SCREEN_W, 60, darkMode ? 0x1082 : 0xC618);
-      tft.drawRect(0, 32, SCREEN_W, 60, BORDER_COLOR);
-      tft.setTextColor(TFT_YELLOW, darkMode ? 0x1082 : 0xC618);
-      tft.setTextDatum(MC_DATUM);
-      tft.drawString(formatTime(stopwatchElapsedMs), 120, 62, 4);
-      
-      // Status-Anzeige
-      tft.setTextColor(stopwatchRunning ? TFT_GREEN : TFT_RED, BG_COLOR);
-      tft.setTextDatum(MC_DATUM);
-      tft.drawString(stopwatchRunning ? "● LÄUFT" : "■ GESTOPPT", 120, 96, 1);
-      
-      // Steuerungs-Buttons
-      int buttonY = 110;
-      int buttonW = 55;
-      int spacing = 6;
-      int totalW = buttonW * 4 + spacing * 3;
-      int startX = (SCREEN_W - totalW) / 2;
-      
-      drawButton(startX, buttonY, buttonW, 40, stopwatchRunning ? TFT_RED : TFT_GREEN, 
-                 stopwatchRunning ? "STOP" : "START");
-      drawButton(startX + buttonW + spacing, buttonY, buttonW, 40, TFT_BLUE, "SPLIT");
-      drawButton(startX + (buttonW + spacing) * 2, buttonY, buttonW, 40, TFT_ORANGE, "RESET");
-      drawButton(startX + (buttonW + spacing) * 3, buttonY, buttonW, 40, TFT_DARKGREY, "MENU");
-      
-      // Split-Liste
-      int splitStartY = 160;
-      tft.drawFastHLine(0, splitStartY - 4, SCREEN_W, BORDER_COLOR);
-      tft.setTextColor(TEXT_COLOR, BG_COLOR);
-      tft.setTextDatum(TL_DATUM);
-      
-      int maxSplits = min((int)splits.size(), 6);
-      int startIdx = max(0, (int)splits.size() - 6);
-      
-      for (int i = 0; i < maxSplits; i++) {
-        int idx = startIdx + i;
-        int yPos = splitStartY + i * 26;
-        tft.setCursor(8, yPos + 4);
-        tft.setTextColor(TFT_LIGHTGREY, BG_COLOR);
-        tft.print("#" + String(idx + 1) + " ");
-        tft.setTextColor(TEXT_COLOR, BG_COLOR);
-        unsigned long splitTime = splits[idx];
-        tft.print(formatTime(splitTime));
-        
-        if (idx > 0) {
-          unsigned long diff = splitTime - splits[idx - 1];
-          tft.setTextColor(TFT_CYAN, BG_COLOR);
-          tft.setCursor(150, yPos + 4);
-          tft.print("+" + formatTime(diff));
-        }
-      }
-      
-    } else {
+
       // ===== TIMER UI =====
       // Haupt-Zeitanzeige
       uint16_t bgColor = (timerState == FINISHED) ? TFT_RED : (darkMode ? 0x1082 : 0xC618);
