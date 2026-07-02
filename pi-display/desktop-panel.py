@@ -6,7 +6,7 @@ from tkinter import font as tkfont
 SW, SH = 480, 320
 GIF_DIR = '/home/dietpi/Pictures/gif_frames'
 GIF_COUNT = 33
-GIF_INTERVAL = 62
+GIF_INTERVAL = 62  # 16 fps, roughly
 
 class DesktopPanel:
     def __init__(self):
@@ -29,6 +29,7 @@ class DesktopPanel:
         self._update_stats()
 
     def _fonts(self):
+        # try jetbrains first, fallback to dejavu
         for s in [26,22,18,14,12,10,9,8]:
             n = f'f{s}'
             try: setattr(self, n, tkfont.Font(family='JetBrains Mono', size=s))
@@ -37,6 +38,7 @@ class DesktopPanel:
         except: self.fb = tkfont.Font(family='DejaVu Sans Mono', size=14, weight='bold')
 
     def _set_desktop_type(self):
+        # xdotool works, xlib was cooked (badwindow error) smh
         try:
             wid = hex(self.root.winfo_id())
             subprocess.run(['xdotool', 'set_window', '--type', 'desktop', wid],
@@ -44,6 +46,7 @@ class DesktopPanel:
         except: pass
 
     def _load_gif_frames(self):
+        # preload all 33 frames, some might fail
         self._gif_frames = []
         for i in range(GIF_COUNT):
             path = os.path.join(GIF_DIR, f'frame_{i:04d}.ppm')
@@ -57,6 +60,7 @@ class DesktopPanel:
                 self._gif_frames.append(None)
 
     def _get_stats(self):
+        # read from sysfs, should work on dietpi
         stats = {}
         try:
             with open('/sys/class/thermal/thermal_zone0/temp') as f:
@@ -79,7 +83,7 @@ class DesktopPanel:
 
     def _render(self):
         self.cv.delete('all')
-        # Animated GIF wallpaper
+        # load the animated rain gif
         self._load_gif_frames()
         if any(f is not None for f in self._gif_frames):
             self._gif_idx = 0
@@ -89,12 +93,12 @@ class DesktopPanel:
             self.cv.create_rectangle(0, 0, SW, SH, fill='#262A32', outline='')
             self.cv.create_rectangle(0, 0, SW, SH, fill='#000000', stipple='gray25', outline='')
 
-        # Clock - top center
+        # clock top center
         now = datetime.datetime.now()
         self._clock_id = self.cv.create_text(SW//2, 70, text='', fill='#FFFFFF', font=self.f26)
         self.cv.create_text(SW//2, 108, text='', fill='#D0D0D0', font=self.f12, tags='date')
 
-        # Shortcuts bar - middle
+        # shortcuts in the middle
         shortcuts = [
             ('WWW', 'Firefox', 'firefox-esr'),
             ('>_', 'Terminal', 'urxvt'),
@@ -115,7 +119,9 @@ class DesktopPanel:
             self.cv.create_text(bx+bw//2, oy+42, text=label, fill='#BBBBBB', font=self.f9)
             self._shortcut_buttons.append({'cmd': cmd, 'x1': bx, 'y1': oy, 'x2': bx+bw, 'y2': oy+bh})
 
-        # Stats - centered in space below shortcuts
+        # stats centered under the shortcuts (moved from 220 to 245)
+        # TODO: maybe add a transparent bg rect if its hard to read
+
         self._stats_ids = {}
         sx = SW//2; sy = 245
         self._stats_ids['cpu_temp'] = self.cv.create_text(sx, sy, text='', fill='#BBBBBB', font=self.f10)
@@ -123,6 +129,7 @@ class DesktopPanel:
         self._stats_ids['uptime'] = self.cv.create_text(sx, sy+34, text='', fill='#BBBBBB', font=self.f9)
 
     def _animate_gif(self):
+        # cycle through the frames at ~16fps
         if not hasattr(self, '_gif_frames') or not self._gif_frames:
             return
         self._gif_idx = (self._gif_idx + 1) % GIF_COUNT
@@ -155,6 +162,7 @@ class DesktopPanel:
         self.root.after(10000, self._update_stats)
 
     def _click(self, e):
+        # TODO: maybe add long press for context menu? idk if we need it rn
         for b in self._shortcut_buttons:
             if b['x1'] <= e.x <= b['x2'] and b['y1'] <= e.y <= b['y2']:
                 env = os.environ.copy()
