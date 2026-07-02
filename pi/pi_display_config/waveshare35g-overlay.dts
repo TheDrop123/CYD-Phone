@@ -1,0 +1,69 @@
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+    compatible = "brcm,bcm2835";
+
+    fragment@0 {
+        target = <&spi0>;
+        __overlay__ {
+            status = "okay";
+        };
+    };
+
+    fragment@1 {
+        target = <&spidev0>;
+        __overlay__ {
+            status = "disabled";
+        };
+    };
+
+    fragment@2 {
+        target = <&spidev1>;
+        __overlay__ {
+            status = "disabled";
+        };
+    };
+
+    fragment@3 {
+        target-path = "/";
+        __overlay__ {
+            display_bl: backlight {
+                compatible = "gpio-backlight";
+                gpios = <&gpio 18 GPIO_ACTIVE_HIGH>;
+                default-on;
+            };
+        };
+    };
+
+    fragment@4 {
+        target = <&spi0>;
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            display: display@0 {
+                compatible = "waveshare,rpi-lcd-35";
+                reg = <0>;
+                spi-max-frequency = <48000000>;
+                rotation = <90>;
+                reset-gpios = <&gpio 27 GPIO_ACTIVE_HIGH>;
+                dc-gpios = <&gpio 22 GPIO_ACTIVE_HIGH>;
+                backlight = <&display_bl>;
+            };
+
+            touch: touch@1 {
+                compatible = "ti,ads7846";
+                reg = <1>;
+                spi-max-frequency = <2000000>;
+                interrupts = <25 2>;
+                interrupt-parent = <&gpio>;
+                pendown-gpio = <&gpio 25 GPIO_ACTIVE_LOW>;
+                ti,x-plate-ohms = /bits/ 16 <100>;
+                ti,pressure-max = /bits/ 16 <255>;
+            };
+        };
+    };
+};

@@ -167,6 +167,7 @@ class DesktopPanel:
 
     def _click(self, e):
         now = time.time()
+        with open('/tmp/panel_debug.log','a') as f: f.write(f'CLICK {e.x},{e.y} last={self._last_tap}\n')
         for i, b in enumerate(self._shortcut_buttons):
             if b['x1'] <= e.x <= b['x2'] and b['y1'] <= e.y <= b['y2']:
                 if self._last_tap and self._last_tap[0] == i and (now - self._last_tap[1]) < 0.5:

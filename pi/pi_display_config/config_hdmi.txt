@@ -1,0 +1,42 @@
+# For more options and information see
+# http://rptl.io/configtxt
+
+# Enable SPI (required for display + touch when SPI display is added back)
+dtparam=spi=on
+
+# Waveshare 3.5" RPi LCD (G) — COMMENTED OUT for HDMI debugging
+# Uncomment when ready to test SPI display:
+# dtoverlay=waveshare35g
+
+# Enable audio
+dtparam=audio=on
+
+# GPU memory: 128MB for smooth HDMI desktop
+gpu_mem=128
+
+# Boot tweaks
+disable_splash=1
+boot_delay=0
+disable_overscan=1
+max_framebuffers=2
+arm_boost=1
+
+# Camera auto-detect (no camera attached, harmless)
+camera_auto_detect=1
+
+# Disable DSI display auto-detect (we use SPI display)
+display_auto_detect=0
+
+# DRM VC4 V3D driver (needed for KMS/GPU)
+dtoverlay=vc4-kms-v3d
+
+# Don't have the firmware create an initial video= setting in cmdline.txt
+disable_fw_kms_setup=1
+
+[cm4]
+otg_mode=1
+
+[cm5]
+dtoverlay=dwc2,dr_mode=host
+
+[all]
