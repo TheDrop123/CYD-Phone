@@ -1,7 +1,5 @@
 # CYD-Phone & Pi AI Node
 
-Two hardware projects by Elias / The Drop, 15, Berlin.
-
 ```
 cyd/          CYD-Phone ESP32 school tablet
 pi/           Pi AI Node — 3.5" SPI display + edge AI
