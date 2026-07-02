@@ -29,7 +29,7 @@ class DesktopPanel:
         self._update_stats()
 
     def _fonts(self):
-        # try jetbrains first, fallback to dejavu
+        # try jetbrains first, fallback to dejavu cuz some ppl dont have it
         for s in [26,22,18,14,12,10,9,8]:
             n = f'f{s}'
             try: setattr(self, n, tkfont.Font(family='JetBrains Mono', size=s))
@@ -46,7 +46,7 @@ class DesktopPanel:
         except: pass
 
     def _load_gif_frames(self):
-        # preload all 33 frames, some might fail
+        # preload all 33 frames, some might fail idk
         self._gif_frames = []
         for i in range(GIF_COUNT):
             path = os.path.join(GIF_DIR, f'frame_{i:04d}.ppm')
@@ -60,7 +60,7 @@ class DesktopPanel:
                 self._gif_frames.append(None)
 
     def _get_stats(self):
-        # read from sysfs, should work on dietpi
+        # read from sysfs halt, should work on dietpi
         stats = {}
         try:
             with open('/sys/class/thermal/thermal_zone0/temp') as f:
@@ -83,7 +83,7 @@ class DesktopPanel:
 
     def _render(self):
         self.cv.delete('all')
-        # load the animated rain gif
+        # load the animated rain gif bro
         self._load_gif_frames()
         if any(f is not None for f in self._gif_frames):
             self._gif_idx = 0
@@ -129,7 +129,7 @@ class DesktopPanel:
         self._stats_ids['uptime'] = self.cv.create_text(sx, sy+34, text='', fill='#BBBBBB', font=self.f9)
 
     def _animate_gif(self):
-        # cycle through the frames at ~16fps
+        # cycle through the frames at ~16fps und so
         if not hasattr(self, '_gif_frames') or not self._gif_frames:
             return
         self._gif_idx = (self._gif_idx + 1) % GIF_COUNT
