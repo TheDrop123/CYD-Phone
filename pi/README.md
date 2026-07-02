@@ -1,10 +1,10 @@
 # Pi AI Node — 3.5" SPI Display + Edge AI
 
-Evolved from the CYD-Phone hackathon project.
+Evolved from the CYD-Phone hackathon project yea.
 
 ## Overview
 
-Full-stack Raspberry Pi project: driving a 3.5" SPI display (Gowin FPGA → ILI9486) via the kernel's DRM driver, with a Tkinter homescreen, touch calibration, animated wallpaper, and a planned upgrade to a **Raspberry Pi 5 (16 GB)** for fully local, cloud-free AI inference.
+Full-stack Raspberry Pi project: driving a 3.5" SPI display (Gowin FPGA → ILI9486) via the kernel's DRM driver, with a Tkinter homescreen, touch calibration, animated wallpaper and a planned upgrade to a **Raspberry Pi 5 (16 GB)** for fully local, cloud-free AI inference.
 
 ## Project Structure
 
@@ -39,8 +39,8 @@ pi/
 - **4-wire SPI + DC pin (GPIO 24)** — kernel `ili9486.ko` DRM driver
 - **Touch calibration** — 6-parameter affine transform via libinput
 - **Desktop panel** — animated rain GIF wallpaper, glass clock, app shortcuts, live CPU/RAM/uptime stats
-- **Boot flow** — waits for network (Ethernet/WiFi), then DRM device, then startx
-- **Compositor** — picom with blur + opacity (xrender backend)
+- **Boot flow** — waits for network (Ethernet/WiFi) then DRM device then startx
+- **Compositor** — picom with blur + opacity (xrender backend) works fine now
 
 ![Pi Desktop](screenshot.png)
 
@@ -99,7 +99,7 @@ Power on → config.txt loads DT overlays (vc4-kms-v3d + ili9486 + ads7846)
 
 - **Black screen / cursor only:** Glamor broken at depth 16. Ensure `SWCursor "true"` in `/etc/X11/xorg.conf.d/10-ili9486-noaccel.conf`.
 - **X fails over SSH:** Must run `startx` from local tty1, not remotely.
-- **White screen:** Almost always DC pin wrong. Double-check GPIO 24.
+- **White screen:** Thats almost always DC pin wrong. Double-check GPIO 24.
 - **Time not syncing:** `sudo timedatectl set-ntp true && sudo timedatectl set-timezone Europe/Berlin`.
 - **Apps too big for 480x320:** Use Openbox per-app `<decor>no</decor>` and smaller fonts.
 - **Picom crashes:** Remove GLX backend — xrender only. Set `backend = "xrender"`.
@@ -117,8 +117,22 @@ Goals:
 
 ## Origin
 
-This project grew out of the [CYD-Phone](https://github.com/TheDrop123/CYD-Phone) hackathon project at **Jugend Hackt Berlin**. The phone taught me hardware-hacking; the Pi teaches me Linux, drivers, display protocols, and now AI on the edge.
+This project grew out of the [CYD-Phone](https://github.com/TheDrop123/CYD-Phone) hackathon project at **Jugend Hackt Berlin**. The phone taught me hardware-hacking the Pi teaches me Linux, drivers, display protocols and now AI on the edge (that is the plan sound gfoo yea?).
 
 ---
 
 Built by Elias / The Drop, 15, Berlin.
+
+---
+
+## Sources
+
+- [ILI9486 Datasheet](https://www.displayfuture.com/Display/datasheet/controller/ILI9486.pdf)
+- [ADS7846 Touch Controller Datasheet](https://www.ti.com/lit/ds/symlink/ads7846.pdf)
+- [Raspberry Pi Device Tree Documentation](https://www.raspberrypi.com/documentation/computers/config_txt.html)
+- [DietPi Project](https://dietpi.com/)
+- [Openbox Window Manager](https://openbox.org/)
+- [Picom Compositor](https://github.com/yshui/picom)
+- [Jugend Hackt Berlin](https://jugendhackt.org/)
+- [Linux ILI9486 DRM Driver](https://github.com/torvalds/linux/blob/master/drivers/gpu/drm/tiny/ili9486.c)
+- [Gowin GW1NZ FPGA Documentation](https://www.gowinsemi.com/)
