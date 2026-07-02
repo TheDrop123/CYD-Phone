@@ -42,6 +42,8 @@ pi/
 - **Boot flow** — waits for network (Ethernet/WiFi), then DRM device, then startx
 - **Compositor** — picom with blur + opacity (xrender backend)
 
+![Pi Desktop](screenshot.png)
+
 ## Next: Edge AI Node
 
 Target hardware: **Raspberry Pi 5 (16 GB)** + Hailo-8L AI Kit + NVMe SSD
