@@ -1,0 +1,14 @@
+! Urxvt config for picom-based transparency (depth 16)
+! Background solid #030803 — picom applies 45% opacity
+
+URxvt.font:                  xft:JetBrains Mono:size=10
+URxvt.foreground:            #7ed47e
+URxvt.background:            #030803
+URxvt.geometry:              55x16
+URxvt.saveLines:             1000
+URxvt.scrollBar:             false
+URxvt.loginShell:            true
+URxvt.termName:              rxvt-unicode
+URxvt.cursorBlink:           true
+URxvt.cursorColor:           #7ed47e
+URxvt.cursorUnderline:       false
