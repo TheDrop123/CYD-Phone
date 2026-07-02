@@ -5,6 +5,8 @@ cyd/          CYD-Phone ESP32 school tablet
 pi/           Pi AI Node — 3.5" SPI display + edge AI
 ```
 
+![Pi Desktop](pi/screenshot.png)
+
 ---
 
 ## CYD-Phone (`cyd/`)
