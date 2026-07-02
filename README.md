@@ -5,7 +5,7 @@ cyd/          CYD-Phone ESP32 school tablet
 pi/           Pi AI Node — 3.5" SPI display + edge AI
 ```
 
-![Pi Desktop](pi/screenshot.png)
+![Pi Desktop](https://raw.githubusercontent.com/TheDrop123/CYD-Phone/main/pi/screenshot.png)
 
 ---
 
@@ -119,7 +119,7 @@ pi/
 - Boot flow — waits for network, then DRM device, then startx
 - Compositor — picom with blur and opacity (xrender backend)
 
-![Pi Desktop](pi/screenshot.png)
+![Pi Desktop](https://raw.githubusercontent.com/TheDrop123/CYD-Phone/main/pi/screenshot.png)
 
 ### Next: Edge AI Node
 
