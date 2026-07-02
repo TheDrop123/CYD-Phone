@@ -1,5 +1,5 @@
-! Urxvt config for picom-based transparency (depth 16)
-! Background solid #030803 — picom applies 45% opacity
+! urxvt config for picom-based transparency (depth 16 bro)
+! background solid #030803 — picom applies 45% opacity cuz xgetimage is cooked
 
 URxvt.font:                  xft:JetBrains Mono:size=10
 URxvt.foreground:            #7ed47e

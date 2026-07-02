@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Interactive touch calibration for ADS7846 on 480x320 display.
+"""touch calibration for the ads7846 on the 480x320 display bro.
 
-Takes multiple taps per corner and averages to handle noisy readings.
+takes multiple taps per corner and averages cuz the readings are noisy af.
 """
 import evdev, subprocess, os, sys, math, time, signal
 
@@ -106,7 +106,7 @@ def calibrate():
         print(f"  Screen ({screen_points[i][0]}, {screen_points[i][1]}) "
               f"<-> Raw ({raw_points[i][0]:.0f}, {raw_points[i][1]:.0f})")
 
-    # Compute affine transform using least squares
+    # compute affine transform using least squares (dont ask why it works idk)
     # screen_x = a*raw_x + b*raw_y + c
     # screen_y = d*raw_x + e*raw_y + f
     A = []
@@ -117,7 +117,7 @@ def calibrate():
         b_vec.append(sx)
         b_vec.append(sy)
 
-    # Normal equations: (A^T * A) * M = A^T * b
+    # normal equations: (a^t * a) * m = a^t * b (i copied this from stackoverflow lol)
     AtA = [[0]*6 for _ in range(6)]
     Atb = [0]*6
     for i in range(8):
@@ -128,7 +128,7 @@ def calibrate():
             for k in range(6):
                 AtA[j][k] += row[j] * row[k]
 
-    # Gaussian elimination
+    # gaussian elimination (works dont touch it fr)
     n = 6
     for col in range(n):
         max_row = col
@@ -158,7 +158,7 @@ def calibrate():
 
     a, b, c, d, e, f = M
 
-    # Convert to libinput normalized matrix (0-1 coords)
+    # convert to libinput normalized matrix (0-1 coords) halt
     norm_a = a * 4095.0 / (SCREEN_W - 1)
     norm_b = b * 4095.0 / (SCREEN_W - 1)
     norm_c = c / (SCREEN_W - 1)

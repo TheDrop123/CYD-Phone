@@ -1,5 +1,5 @@
 #!/bin/bash
-# Boot script: waits for IP + display, then starts X
+# boot script bro — waits for ip + display, then starts x
 
 LOG=/tmp/desktop-boot.log
 exec > "$LOG" 2>&1
