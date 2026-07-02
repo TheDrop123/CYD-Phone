@@ -2,9 +2,14 @@
 
 Two hardware projects by Elias / The Drop, 15, Berlin.
 
+```
+cyd/          CYD-Phone ESP32 school tablet
+pi/           Pi AI Node — 3.5" SPI display + edge AI
+```
+
 ---
 
-## CYD-Phone
+## CYD-Phone (`cyd/`)
 
 A touchscreen school tablet based on the Cheap Yellow Display (ESP32 WROOM), designed as a privacy-safe alternative to smartphones in classrooms.
 
@@ -34,86 +39,50 @@ Da die Schulen die Kameras oder Mikrofone privater Smartphones im Allgemeinen ni
 
 Genau hier kommt das CYD-Phone ins Spiel. Es handelt sich um ein Touchscreen-Gerat (Cheap Yellow Display), das von einem ESP32-WROOM-Modul angetrieben wird. Die geplanten Hauptfunktionen liegen im Bildungsbereich: Dateiaustausch uber einen Cloud-Dienst, Messaging uber das NOSTR-Protokoll, eine Notiz-App mit Zeichenfunktion und WebUntis-API-Integration fur den Stundenplan.
 
-### SchoolOS
-
 ### Apps
 
 #### Calc (Taschenrechner)
-Ein Standard-Taschenrechner fur tagliche Rechnungen.
 - Grundrechenarten: Plus, Minus, Mal, Geteilt
 - Spezialfunktionen: x2 (Quadrieren), Wr. (Wurzel), 1/x (Kehrwert), ^ (Potenz)
 - C loscht die aktuelle Eingabe
 
 #### Draw (Zeichnen)
-Schnelle kreative Skizzen.
 - 8 Farben in der Leiste unten links
 - RAD schaltet Radiergummi ein/aus
 - NEU loscht das Bild
-- SZ+ und SZ- andert die Stiftdicke
-- RAUS / ZURUCK beendet die App
+- SZ+/SZ- andert die Stiftdicke
 
 #### Notes (Notizen)
-Textnotizen auf der SD-Karte.
 - + fur neue Notiz
-- Tippen auf eine Notiz zum Lesen/Bearbeiten
+- Tippen zum Lesen/Bearbeiten
 - Rotes X loscht die Notiz
 
 #### Chat
-Globaler CYD-Chat uber WLAN.
-- Erfordert aktive WLAN-Verbindung
+- Globaler CYD-Chat uber WLAN
 - Nachrichten per virtueller Tastatur
 - Automatische Synchronisation
 
 #### Read (MD-Reader)
-Liest Markdown-Dateien von der SD-Karte.
-- SD-Karte erforderlich
+- List Markdown-Dateien von der SD-Karte
 - Zeigt bis zu 20 Dateien
-- Tippen zum Weiterblattern
 
 #### WebUntis (Stundenplan)
-Stundenplananzeige.
 - Erfordert WLAN
 - Tagesauswahl (Mo-Sa)
 - Zeigt Fach, Lehrer, Raum, Uhrzeit
 
 #### Settings (Einstellungen)
 - WiFi/Zeit ein/aus
-- Zeitzone: Sommer-/Winterzeit
-- WLAN oder SD-Karte neu laden
-
-#### Virtuelle Tastatur
-- 123/ABC wechselt zwischen Buchstaben und Zahlen
-- Pfeil nach oben: Gro-/Kleinbuchstaben
-- SPACE: Leerzeichen
-- Pfeil links: Zeichen loschen
-- OK: Eingabe speichern
+- Zeitzone umschalten
+- WLAN/SD-Karte neuladen
 
 Von: RominoKowalski, Gartenprofi, gnampfkuchen-oss, WX_79, The_Drop
 
 ---
 
-## Pi AI Node
+## Pi AI Node (`pi/`)
 
 Full-stack Raspberry Pi project: driving a 3.5" SPI display (Gowin FPGA to ILI9486) via the kernel DRM driver, with a Tkinter homescreen, touch calibration, animated wallpaper, and a planned upgrade to a Raspberry Pi 5 (16 GB) for fully local AI inference.
-
-### Project Structure
-
-```
-pi-display/
-  desktop-panel.py          Tkinter homescreen (clock, shortcuts, stats, animated GIF)
-  dt-overlay/
-    rpi-lcd-35-dc.dts       Device Tree overlay for ILI9486 (DC=GPIO24, 4-wire SPI)
-  config/
-    config.txt              Pi boot config
-    openbox-autostart.sh    Openbox autostart
-    picom.conf              Compositor config
-    Xresources              URxvt colors/font/geometry
-    autostart               Desktop panel autostart
-  scripts/
-    start-desktop.sh        Boot flow (network to DRM to X)
-    calibrate-touch.py      4-corner touch calibration
-    live-glass.sh           Glass overlay script
-```
 
 ### Hardware
 
@@ -123,6 +92,24 @@ pi-display/
 | Display | 3.5" SPI, 480x320, Gowin FPGA to ILI9486 |
 | Touch | ADS7846 resistive (SPI CE1) |
 | Stack | DietPi/Trixie, aarch64, Xorg/modesetting, Openbox, Tkinter |
+
+### Project Structure
+
+```
+pi/
+  desktop-panel.py          Tkinter homescreen
+  dt-overlay/
+    rpi-lcd-35-dc.dts       Device Tree overlay
+  config/
+    config.txt              Pi boot config
+    Xresources              URxvt config
+    picom.conf              Compositor config
+    autostart               Desktop autostart
+  scripts/
+    start-desktop.sh        Boot flow
+    calibrate-touch.py      Touch calibration
+    live-glass.sh           Glass overlay
+```
 
 ### Current Features
 

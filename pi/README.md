@@ -1,6 +1,6 @@
 # Pi AI Node — 3.5" SPI Display + Edge AI
 
-**Branch:** `pi-ai-node` — evolved from the CYD-Phone hackathon project.
+Evolved from the CYD-Phone hackathon project.
 
 ## Overview
 
@@ -9,7 +9,7 @@ Full-stack Raspberry Pi project: driving a 3.5" SPI display (Gowin FPGA → ILI9
 ## Project Structure
 
 ```
-pi-display/
+pi/
 ├── desktop-panel.py          # Tkinter homescreen (clock, shortcuts, stats, animated GIF)
 ├── dt-overlay/
 │   └── rpi-lcd-35-dc.dts     # Device Tree overlay for ILI9486 (DC=GPIO24, 4-wire SPI)
