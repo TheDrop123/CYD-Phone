@@ -1,18 +1,18 @@
 #!/bin/sh
 
-# compositor for transparency and blur und so
+# compositor for transparency + blur
 picom --config /home/dietpi/.config/picom/picom.conf &
 
-# wallpaper cycle daemon (rotates every 10 min)
+# wallpaper cycle daemon
 /home/dietpi/Pictures/wallpaper-cycle.sh daemon &
 
-# swipe gesture daemon (reads evdev alongside x)
+# swipe gesture daemon (reads evdev)
 /usr/local/bin/swipe-daemon &
 
-# load x resources for urxvt halt
+# load x resources for urxvt etc
 xrdb -load /home/dietpi/.Xresources
 
-# touch calibration matrix (from 4-corner calib, dont touch this pls)
+# touch calibration matrix from 4-corner cal
 xinput set-prop 6 'libinput Calibration Matrix' -0.017720 1.132511 -0.076279 -1.154947 0.046851 1.032665 0 0 1 &
 
 # desktop panel with clock, stats, shortcuts

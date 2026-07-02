@@ -1,4 +1,4 @@
-# openbox autostart (refrence, not actually used anymore)
+# openbox autostart (reference, not actually used anymore)
 tint2 &
 picom --config /home/dietpi/.config/picom/picom.conf &
 feh --bg-fill /home/dietpi/Pictures/wallpaper.jpg &

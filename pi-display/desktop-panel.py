@@ -29,7 +29,7 @@ class DesktopPanel:
         self._update_stats()
 
     def _fonts(self):
-        # try jetbrains first, fallback to dejavu cuz some ppl dont have it
+        # try jetbrains first, fall back to dejavu
         for s in [26,22,18,14,12,10,9,8]:
             n = f'f{s}'
             try: setattr(self, n, tkfont.Font(family='JetBrains Mono', size=s))
@@ -38,7 +38,7 @@ class DesktopPanel:
         except: self.fb = tkfont.Font(family='DejaVu Sans Mono', size=14, weight='bold')
 
     def _set_desktop_type(self):
-        # xdotool works, xlib was cooked (badwindow error) smh
+        # xdotool works, xlib kept giving badwindow errors
         try:
             wid = hex(self.root.winfo_id())
             subprocess.run(['xdotool', 'set_window', '--type', 'desktop', wid],
@@ -60,7 +60,7 @@ class DesktopPanel:
                 self._gif_frames.append(None)
 
     def _get_stats(self):
-        # read from sysfs halt, should work on dietpi
+        # read from sysfs, should work on dietpi
         stats = {}
         try:
             with open('/sys/class/thermal/thermal_zone0/temp') as f:
@@ -121,7 +121,6 @@ class DesktopPanel:
 
         # stats centered under the shortcuts (moved from 220 to 245)
         # TODO: maybe add a transparent bg rect if its hard to read
-
         self._stats_ids = {}
         sx = SW//2; sy = 245
         self._stats_ids['cpu_temp'] = self.cv.create_text(sx, sy, text='', fill='#BBBBBB', font=self.f10)
@@ -129,7 +128,7 @@ class DesktopPanel:
         self._stats_ids['uptime'] = self.cv.create_text(sx, sy+34, text='', fill='#BBBBBB', font=self.f9)
 
     def _animate_gif(self):
-        # cycle through the frames at ~16fps und so
+        # cycle through the preloaded frames at ~16fps
         if not hasattr(self, '_gif_frames') or not self._gif_frames:
             return
         self._gif_idx = (self._gif_idx + 1) % GIF_COUNT
