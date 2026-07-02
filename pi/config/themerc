@@ -1,0 +1,52 @@
+# Openbox theme - focused border indicator
+window.border.width: 1
+window.active.border.color: #ffffff
+window.inactive.border.color: #030803
+window.client.width: 1
+window.client.color: #1e1e1e
+
+window.title.height: 42
+window.title.bg: solid flat
+window.title.bg.color: #1e1e1e
+window.title.separator: 0
+window.title.text: center
+window.title.text.font: shadow=n
+window.title.text.justify: center
+
+window.label.text: center
+window.label.text.font: shadow=n
+window.label.text.justify: center
+
+window.button.layout: L
+window.button.padding: 8
+
+font: activewindow
+    size: 8
+    weight: bold
+    color: #ffffff
+end
+
+font: inactivewindow
+    size: 8
+    weight: bold
+    color: #666666
+end
+
+font: menu.items
+    size: 8
+    weight: normal
+    color: #ffffff
+end
+# Window button colors
+window.button.hover.bg: solid flat
+window.button.hover.bg.color: #EA5E77
+window.button.press.bg: solid flat
+window.button.press.bg.color: #C44D63
+window.button.close.hover.bg: solid flat
+window.button.close.hover.bg.color: #EA5E77
+window.button.close.press.bg: solid flat
+window.button.close.press.bg.color: #C44D63
+window.button.iconify.hover.bg: solid flat
+window.button.iconify.hover.bg.color: #3D5665
+window.button.max.hover.bg: solid flat
+window.button.max.hover.bg.color: #3D5665

@@ -16,12 +16,12 @@ class DesktopPanel:
         self.root.attributes('-topmost', False)
         self.cv = tk.Canvas(self.root, width=SW, height=SH, highlightthickness=0, bg='#000000')
         self.cv.pack()
+        self.root.lower()
         self._fonts()
-        self.root.after(200, self._set_desktop_type)
         self._render()
         self.root.after(100, self._first_update)
         self.cv.bind('<Button-1>', self._click)
-        signal.signal(signal.SIGTERM, lambda *a: self._quit())
+        self._last_tap = None
         self.root.mainloop()
 
     def _first_update(self):
@@ -38,11 +38,16 @@ class DesktopPanel:
         except: self.fb = tkfont.Font(family='DejaVu Sans Mono', size=14, weight='bold')
 
     def _set_desktop_type(self):
-        # xdotool works, xlib kept giving badwindow errors
         try:
             wid = hex(self.root.winfo_id())
             subprocess.run(['xdotool', 'set_window', '--type', 'desktop', wid],
                            capture_output=True, timeout=3)
+        except: pass
+
+    def _hide_then_show(self, ms=5000):
+        try:
+            self.root.withdraw()
+            self.root.after(ms, lambda: self.root.deiconify())
         except: pass
 
     def _load_gif_frames(self):
@@ -161,20 +166,24 @@ class DesktopPanel:
         self.root.after(10000, self._update_stats)
 
     def _click(self, e):
-        # TODO: maybe add long press for context menu? idk if we need it rn
-        for b in self._shortcut_buttons:
+        now = time.time()
+        for i, b in enumerate(self._shortcut_buttons):
             if b['x1'] <= e.x <= b['x2'] and b['y1'] <= e.y <= b['y2']:
-                env = os.environ.copy()
-                env['DISPLAY'] = ':0'
-                for auth in ['/tmp/serverauth.*', '/home/dietpi/.Xauthority']:
-                    for p in glob.glob(auth):
+                if self._last_tap and self._last_tap[0] == i and (now - self._last_tap[1]) < 0.5:
+                    self._last_tap = None
+                    env = os.environ.copy()
+                    env['DISPLAY'] = ':0'
+                    for p in sorted(glob.glob('/tmp/serverauth.*')):
                         env['XAUTHORITY'] = p; break
-                    if 'XAUTHORITY' in env: break
-                try:
-                    subprocess.Popen(['bash', '-c', b['cmd']],
-                                     env=env, start_new_session=True,
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                except: pass
+                    if 'XAUTHORITY' not in env and os.path.exists('/home/dietpi/.Xauthority'):
+                        env['XAUTHORITY'] = '/home/dietpi/.Xauthority'
+                    try:
+                        subprocess.Popen(['bash', '-c', b['cmd']],
+                                         env=env, start_new_session=True,
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    except: pass
+                else:
+                    self._last_tap = (i, now)
                 break
 
     def _quit(self):
@@ -185,4 +194,5 @@ if __name__ == '__main__':
     os.setsid()
     if os.fork() > 0: sys.exit(0)
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, lambda *a: os._exit(0))
     DesktopPanel()
