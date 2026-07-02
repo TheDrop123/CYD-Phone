@@ -1,0 +1,60 @@
+# for more options and info see
+# http://rptl.io/configtxt
+
+# enable spi (needed for display + touch)
+dtparam=spi=on
+
+# enable audio
+dtparam=audio=on
+
+# dont let firmware create a video= in cmdline.txt
+# use kernel default instead
+disable_fw_kms_setup=1
+
+# disable overscan compensation
+disable_overscan=1
+
+# run as fast as firmware allows
+arm_boost=1
+
+# higher core freq = faster spi transfers
+core_freq=500
+
+# === EXTREME OVERCLOCK ===
+# massive 93x74x41mm heatsink + 65mm active fan — go nuts
+arm_freq=1400
+gpu_freq=500
+over_voltage=6
+sdram_freq=500
+force_turbo=1
+temp_limit=85
+avoid_warnings=1
+
+# boot tweaks
+disable_splash=1
+boot_delay=0
+
+# gpu memory for desktop compositing (labwc + xwayland)
+gpu_mem=128
+
+# camera auto-detect (no camera attached, harmless)
+camera_auto_detect=1
+
+# disable dsi display auto-detect (we use spi)
+display_auto_detect=0
+
+# drm vc4 v3d driver (needed for kms/gpu)
+max_framebuffers=2
+dtoverlay=vc4-kms-v3d
+
+# ili9486 spi display + ads7846 touch via fpga bridge
+dtoverlay=rpi-lcd-35-dc
+dtoverlay=ads7846,penirq=17,pmax=255,xohms=60
+
+[cm4]
+otg_mode=1
+
+[cm5]
+dtoverlay=dwc2,dr_mode=host
+
+[all]

@@ -1,0 +1,48 @@
+// spdx-license-identifier: gpl-2.0
+// overlay for the 3.5 inch ili9486 display with dc pin (4-wire spi)
+// uses kernel drm ili9486 driver (not fbtft)
+// reset: gpio 27, dc: gpio 24
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2835";
+
+	fragment@0 {
+		target = <&spi0>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@1 {
+		target = <&gpio>;
+		__overlay__ {
+			lcd35_pins: lcd35_pins {
+				brcm,pins = <27 24>;
+				brcm,function = <1 1>;
+				brcm,pull = <0 0>;
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&spi0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			lcd35: display@0 {
+				compatible = "waveshare,rpi-lcd-35";
+				reg = <0>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&lcd35_pins>;
+				spi-max-frequency = <120000000>;
+				dc-gpios = <&gpio 24 0>;
+				reset-gpios = <&gpio 27 1>;
+				rotation = <0>;  /* driver default: mv|my|mx|bgr */
+				status = "okay";
+			};
+		};
+	};
+};

@@ -1,165 +1,147 @@
-<h1>CYD-Phone</h1>
+# CYD-Phone & Pi AI Node
 
-<h2>English:</h2>
-Schools usually ban phones because they can be used to record people, take photos, cheat on tests, distract students, and enable cyberbullying.
+Two hardware projects by Elias / The Drop, 15, Berlin.
 
-Since phones have cameras and microphones, students could record teachers or classmates without permission, which can cause privacy and legal issues especially in Germany where this project is based in in particular  §201a StGB
+---
 
-<img width="1632" height="517" alt="image" src="https://github.com/user-attachments/assets/f54ee0f5-1331-4ea2-9068-9b5f5143d589" />
-<img width="1877" height="763" alt="image" src="https://github.com/user-attachments/assets/1b3342ba-ec3f-4f61-8a49-e3601c508b72" />
+## CYD-Phone
+
+A touchscreen school tablet based on the Cheap Yellow Display (ESP32 WROOM), designed as a privacy-safe alternative to smartphones in classrooms.
+
+### English
+
+Schools usually ban phones because they can be used to record people, take photos, cheat on tests, distract students, and enable cyberbullying. Since phones have cameras and microphones, students could record teachers or classmates without permission, which can cause privacy and legal issues especially in Germany where this project is based, in particular §201a StGB.
 
 Schools enforce bans mainly through rules:
-
-* Phones stay in bags, lockers, or locked pouches.
-* Phones may be confiscated if used during class.
+- Phones stay in bags, lockers, or locked pouches.
+- Phones may be confiscated if used during class.
 
 They generally cannot disable cameras or microphones on personal phones, so they reduce the risk by restricting phone use instead.
 
-
-So this is where our product comes into the game.
-<img width="2350" height="1613" alt="IMG_0066" src="https://github.com/user-attachments/assets/e8571d3d-24b6-430b-851c-939df2ed074f" />
-So this is the CYD-Phone. It´s a touchscreen (Cheap Yellow Display) that´s powered by an esp32 wroom and functions by..well touch..
-The Key Functions planned for this device are in the educational field.. That means stuff that is essential for school use- like for example you will have file sharing which is done by some cloud service which is hosted on a server which I (THE DROP) provide.
-Then we have messaging stuff which is using the NOSTR protocol.#
-
-Nostr stands for "Notes and Other Stuff Transmitted by Relays."
-
-Simple explanation:
-
-Nostr is an open communication protocol. It's not a company, website, or app. It's a set of rules that different apps and servers follow.
-
-Yes- this definition was written by AI haha, well back to the point- that is a good messaging protocol and some of our friends already know how to use this aswell.
-
-Then we have a standard NOTES app, which is there for well text taking and also you are able to draw on this aswell- though I´m not entirely sure on how well this last point will work on there..
-
-And also we are going to integrate WebUntis API there.. that means that we will be able to monitor our school schedule like seen here:
-<img width="152" height="331" alt="image" src="https://github.com/user-attachments/assets/d0bbeb3b-e6f9-410e-9eee-232a82c9da0e" />
-
-
-<h2>Deutsch:</h2>
-
-Schulen verbieten Mobiltelefone meist deshalb, weil sie dazu genutzt werden können, Personen aufzunehmen, Fotos zu machen, bei Prüfungen zu schummeln, Schüler abzulenken und Cybermobbing zu ermöglichen.
-
-Da Smartphones über Kameras und Mikrofone verfügen, könnten Schüler Lehrer oder Mitschüler ohne deren Zustimmung aufnehmen. Dies kann zu Problemen hinsichtlich der Privatsphäre und zu rechtlichen Schwierigkeiten führen – insbesondere in Deutschland, wo dieses Projekt angesiedelt ist (hier ist vor allem § 201a StGB relevant).
-
-<img width="1632" height="517" alt="image" src="https://github.com/user-attachments/assets/f54ee0f5-1331-4ea2-9068-9b5f5143d589" />
-<img width="1877" height="763" alt="image" src="https://github.com/user-attachments/assets/1b3342ba-ec3f-4f61-8a49-e3601c508b72" />
-
-Schulen setzen Verbote hauptsächlich durch Regeln durch:
-
-*   Handys müssen in der Tasche, im Spind oder in verschließbaren Beuteln aufbewahrt werden.
-*   Handys können bei Nutzung während des Unterrichts eingezogen werden.
-
-Da die Schulen die Kameras oder Mikrofone privater Smartphones im Allgemeinen nicht deaktivieren können, verringern sie das Risiko stattdessen durch eine Einschränkung der Handynutzung.
-
-Genau hier kommt unser Produkt ins Spiel.
-<img width="2350" height="1613" alt="IMG_0066" src="https://github.com/user-attachments/assets/e8571d3d-24b6-430b-851c-939df2ed074f" />
-Das ist also das CYD-Phone. Es handelt sich um ein Touchscreen-Gerät (basierend auf dem sogenannten „Cheap Yellow Display“), das von einem ESP32-WROOM-Modul angetrieben wird und – wie der Name schon sagt – per Berührung bedient wird.
-Die für dieses Gerät geplanten Hauptfunktionen liegen im Bildungsbereich. Das bedeutet, es bietet Funktionen, die für den Schulalltag essenziell sind – wie zum Beispiel einen Dateiaustausch über einen Cloud-Dienst, der auf einem von mir („THE DROP“) bereitgestellten Server gehostet wird. Dann gibt es noch die Messaging-Funktion, die auf dem NOSTR-Protokoll basiert.
-
-Nostr steht für „Notes and Other Stuff Transmitted by Relays“ (Notizen und andere Dinge, die über Relays übertragen werden).
-
-Kurz erklärt:
-
-Nostr ist ein offenes Kommunikationsprotokoll. Es ist weder ein Unternehmen noch eine Website oder eine App. Es handelt sich um eine Reihe von Regeln, an die sich verschiedene Apps und Server halten.
-
-Ja – diese Definition wurde von einer KI verfasst, haha. Aber zurück zum Thema: Es ist ein gutes Messaging-Protokoll, und einige unserer Freunde wissen bereits, wie man es nutzt.
-
-Außerdem gibt es eine Standard-Notiz-App; sie dient – ​​wie der Name schon sagt – zum Festhalten von Texten, bietet aber auch eine Zeichenfunktion. Wobei ich mir nicht ganz sicher bin, wie gut Letzteres dort funktionieren wird...
-
-Zudem werden wir die WebUntis-API integrieren. Das bedeutet, dass wir unseren Stundenplan im Blick behalten können, wie hier zu sehen:
-<img width="152" height="331" alt="image" src="https://github.com/user-attachments/assets/d0bbeb3b-e6f9-410e-9eee-232a82c9da0e" />
-
-<h3>SchoolOS:</h3>
-<img width="300" heigth="auto" src="https://github.com/TheDrop123/CYD-Phone/blob/main/Screenshots%20CYD/PXL_20260620_175603071.MP.jpg" />
-
-<h3>Die Apps:</h3>
-<h4>Calc (Taschenrechner)</h4>
-
-Ein Standard-Taschenrechner fuer deine taeglichen Rechnungen.  
-
-    Bietet Grundrechenarten wie Plus, Minus, Mal und Geteilt.  
-
-    Spezialfunktionen: x2 (Quadrieren), Wr. (Wurzel ziehen), 1/x (Kehrwert) und ^ (Potenz).  
-
-    Mit der Taste C loescht du deine aktuelle Eingabe.  
-
-<h4>Draw (Zeichnen)</h4>
-
-Deine App fuer schnelle kreative Skizzen.  
-
-    Unten links in der Leiste findest du 8 verschiedene Farben.  
-
-    RAD schaltet den Radiergummi ein oder aus.  
-
-    NEU loescht das gesamte Bild sofort.  
-
-    Mit SZ+ und SZ- veraenderst du die Stiftdicke.  
-
-    RAUS oder ZURUECK beendet die Zeichen-App und bringt dich ins Menue.  
-
-<h4>Notes (Notizen)</h4>
-
-Hier kannst du Textnotizen erstellen und dauerhaft auf der SD-Karte speichern.  
-
-    Tippe auf das + Symbol, um eine neue Notiz zu erstellen.  
-
-    Waehle eine Notiz aus der Liste, um sie zu lesen oder den Text zu bearbeiten.  
-
-    Tippe auf das rote X neben einer Notiz, um sie endgueltig zu loeschen.  
-
-<h4>Chat</h4>
-
-Verbinde dich mit dem globalen CYD-Chat.  
-
-    Diese App erfordert eine aktive WLAN-Verbindung.  
-
-    Tippe deine Nachricht bequem ueber die virtuelle Tastatur ein.  
-
-    Nachrichten werden automatisch ueber das Netzwerk mit anderen Nutzern synchronisiert.  
-
-<h4>Read (MD-Reader)</h4>
-
-Liest Markdown-Dateien wie diese von deiner SD-Karte.  
-
-    Die SD-Karte muss eingelegt und funktionstuechtig sein.  
-
-    Zeigt bis zu 20 Dateien aus dem Hauptverzeichnis an.  
-
-    Tippe einfach auf den Bildschirm, um weiterzublaettern, wenn der Text laenger als eine Seite ist.  
-
-<h4>WebUntis (Stundenplan)</h4>
-
-Zeigt den aktuellen Stundenplan deines Gymnasiums an.  
-
-    Erfordert zwingend eine aktive WLAN-Verbindung.  
-
-    Waehle zunaechst einen Wochentag von Montag bis Samstag aus.  
-
-    Anschliessend siehst du Fach, Lehrer, Raum und die genaue Uhrzeit der Stunde.  
-
-<h4>Settings (Einstellungen)</h4>
-
-Passe dein CYD Phone an deine Beduerfnisse an.  
-
-    WiFi/Zeit: Schalte die WLAN-Verbindung und die automatische Zeitsynchronisation AN oder AUS.  
-
-    Zeitzone: Wechsle mit einem Tippen zwischen Sommerzeit und Winterzeit.  
-
-    Du kannst hier bei Problemen auch das WLAN oder die SD-Karte neu laden.  
-
-<h4>Virtuelle Tastatur</h4>
-
-Einige Apps (wie Chat und Notizen) nutzen die eingebaute Bildschirmtastatur.  
-
-    Mit der Taste 123 oder ABC wechselst du zwischen normalen Buchstaben und Zahlen oder Symbolen.  
-
-    Die Taste mit dem Pfeil nach oben schaltet zwischen Gross- und Kleinbuchstaben um.  
-
-    SPACE fuegt ein Leerzeichen ein.  
-
-    Der Pfeil nach links loescht das zuletzt getippte Zeichen.  
-
-    Mit OK speicherst du deine fertige Eingabe und schliesst die Tastatur.
+So this is where the CYD-Phone comes in. It is a touchscreen (Cheap Yellow Display) powered by an ESP32 WROOM. The key functions planned for this device are in the educational field: file sharing via a cloud service hosted on a server provided by THE DROP, messaging using the NOSTR protocol, a notes app with drawing support, and WebUntis API integration for school schedules.
+
+### Deutsch
+
+Schulen verbieten Mobiltelefone meist deshalb, weil sie dazu genutzt werden konnen, Personen aufzunehmen, Fotos zu machen, bei Prufungen zu schummeln, Schuler abzulenken und Cybermobbing zu ermoglichen.
+
+Da Smartphones uber Kameras und Mikrofone verfugen, konnten Schuler Lehrer oder Mitschuler ohne deren Zustimmung aufnehmen. Dies kann zu Problemen hinsichtlich der Privatsphare und zu rechtlichen Schwierigkeiten fuhren - insbesondere in Deutschland, wo dieses Projekt angesiedelt ist (hier ist vor allem § 201a StGB relevant).
+
+Schulen setzen Verbote hauptsachlich durch Regeln durch:
+- Handys mussen in der Tasche, im Spind oder in verschliebbaren Beuteln aufbewahrt werden.
+- Handys konnen bei Nutzung wahrend des Unterrichts eingezogen werden.
+
+Da die Schulen die Kameras oder Mikrofone privater Smartphones im Allgemeinen nicht deaktivieren konnen, verringern sie das Risiko stattdessen durch eine Einschrankung der Handynutzung.
+
+Genau hier kommt das CYD-Phone ins Spiel. Es handelt sich um ein Touchscreen-Gerat (Cheap Yellow Display), das von einem ESP32-WROOM-Modul angetrieben wird. Die geplanten Hauptfunktionen liegen im Bildungsbereich: Dateiaustausch uber einen Cloud-Dienst, Messaging uber das NOSTR-Protokoll, eine Notiz-App mit Zeichenfunktion und WebUntis-API-Integration fur den Stundenplan.
+
+### SchoolOS
+
+### Apps
+
+#### Calc (Taschenrechner)
+Ein Standard-Taschenrechner fur tagliche Rechnungen.
+- Grundrechenarten: Plus, Minus, Mal, Geteilt
+- Spezialfunktionen: x2 (Quadrieren), Wr. (Wurzel), 1/x (Kehrwert), ^ (Potenz)
+- C loscht die aktuelle Eingabe
+
+#### Draw (Zeichnen)
+Schnelle kreative Skizzen.
+- 8 Farben in der Leiste unten links
+- RAD schaltet Radiergummi ein/aus
+- NEU loscht das Bild
+- SZ+ und SZ- andert die Stiftdicke
+- RAUS / ZURUCK beendet die App
+
+#### Notes (Notizen)
+Textnotizen auf der SD-Karte.
+- + fur neue Notiz
+- Tippen auf eine Notiz zum Lesen/Bearbeiten
+- Rotes X loscht die Notiz
+
+#### Chat
+Globaler CYD-Chat uber WLAN.
+- Erfordert aktive WLAN-Verbindung
+- Nachrichten per virtueller Tastatur
+- Automatische Synchronisation
+
+#### Read (MD-Reader)
+Liest Markdown-Dateien von der SD-Karte.
+- SD-Karte erforderlich
+- Zeigt bis zu 20 Dateien
+- Tippen zum Weiterblattern
+
+#### WebUntis (Stundenplan)
+Stundenplananzeige.
+- Erfordert WLAN
+- Tagesauswahl (Mo-Sa)
+- Zeigt Fach, Lehrer, Raum, Uhrzeit
+
+#### Settings (Einstellungen)
+- WiFi/Zeit ein/aus
+- Zeitzone: Sommer-/Winterzeit
+- WLAN oder SD-Karte neu laden
+
+#### Virtuelle Tastatur
+- 123/ABC wechselt zwischen Buchstaben und Zahlen
+- Pfeil nach oben: Gro-/Kleinbuchstaben
+- SPACE: Leerzeichen
+- Pfeil links: Zeichen loschen
+- OK: Eingabe speichern
 
 Von: RominoKowalski, Gartenprofi, gnampfkuchen-oss, WX_79, The_Drop
+
+---
+
+## Pi AI Node
+
+Full-stack Raspberry Pi project: driving a 3.5" SPI display (Gowin FPGA to ILI9486) via the kernel DRM driver, with a Tkinter homescreen, touch calibration, animated wallpaper, and a planned upgrade to a Raspberry Pi 5 (16 GB) for fully local AI inference.
+
+### Project Structure
+
+```
+pi-display/
+  desktop-panel.py          Tkinter homescreen (clock, shortcuts, stats, animated GIF)
+  dt-overlay/
+    rpi-lcd-35-dc.dts       Device Tree overlay for ILI9486 (DC=GPIO24, 4-wire SPI)
+  config/
+    config.txt              Pi boot config
+    openbox-autostart.sh    Openbox autostart
+    picom.conf              Compositor config
+    Xresources              URxvt colors/font/geometry
+    autostart               Desktop panel autostart
+  scripts/
+    start-desktop.sh        Boot flow (network to DRM to X)
+    calibrate-touch.py      4-corner touch calibration
+    live-glass.sh           Glass overlay script
+```
+
+### Hardware
+
+| Component | Detail |
+|-----------|--------|
+| Pi | 3B (upgrading to Pi 5 16 GB) |
+| Display | 3.5" SPI, 480x320, Gowin FPGA to ILI9486 |
+| Touch | ADS7846 resistive (SPI CE1) |
+| Stack | DietPi/Trixie, aarch64, Xorg/modesetting, Openbox, Tkinter |
+
+### Current Features
+
+- 4-wire SPI with DC pin (GPIO 24) — kernel ili9486 DRM driver
+- Touch calibration — 6-parameter affine transform via libinput
+- Desktop panel — animated rain GIF wallpaper, glass clock, app shortcuts, live CPU/RAM/uptime stats
+- Boot flow — waits for network, then DRM device, then startx
+- Compositor — picom with blur and opacity (xrender backend)
+
+### Next: Edge AI Node
+
+Target hardware: Raspberry Pi 5 (16 GB) + Hailo-8L AI Kit + NVMe SSD
+
+Goals:
+- Run quantized LLMs (Llama, Mistral) fully offline
+- Local vector DB for RAG
+- No cloud dependency
+- Document the build as a guide for other teens
+
+### Origin
+
+This project grew out of the CYD-Phone hackathon project at Jugend Hackt Berlin. The phone taught hardware hacking; the Pi teaches Linux, drivers, display protocols, and edge AI.
