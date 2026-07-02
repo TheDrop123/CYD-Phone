@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""touch calibration for the ads7846 on the 480x320 display bro.
+"""touch calibration for the ads7846 on the 480x320 display.
 
 takes multiple taps per corner and averages cuz the readings are noisy af.
 """

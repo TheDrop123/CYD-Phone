@@ -15,5 +15,5 @@ xrdb -load /home/dietpi/.Xresources
 # touch calibration matrix (from 4-corner calib, dont touch this pls)
 xinput set-prop 6 'libinput Calibration Matrix' -0.017720 1.132511 -0.076279 -1.154947 0.046851 1.032665 0 0 1 &
 
-# desktop panel with clock, stats, shortcuts bro
+# desktop panel with clock, stats, shortcuts
 /usr/local/bin/desktop-panel &

@@ -83,7 +83,7 @@ class DesktopPanel:
 
     def _render(self):
         self.cv.delete('all')
-        # load the animated rain gif bro
+        # load the animated rain gif
         self._load_gif_frames()
         if any(f is not None for f in self._gif_frames):
             self._gif_idx = 0
