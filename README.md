@@ -76,7 +76,7 @@ Genau hier kommt das CYD-Phone ins Spiel. Es handelt sich um ein Touchscreen-Ger
 - Zeitzone umschalten
 - WLAN/SD-Karte neuladen
 
-Von: RominoKowalski, Gartenprofi, gnampfkuchen-oss, WX_79, The_Drop
+Contributors: WX-79, RominoKowalski, TheDrop123, Gartenprofi, gnampfkuchen-oss
 
 ---
 
