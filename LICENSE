@@ -1,4 +1,4 @@
-Copyright (C) 2026 The CYD-Phone contributors (RominoKOwalski, TheDrop, usw)
+Copyright (C) 2026 The CYD-Phone contributors (WX-79, RominoKowalski, TheDrop123, Gartenprofi, gnampfkuchen-oss)
 
 GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
@@ -296,9 +296,9 @@ permissions may be written to require their own removal in certain cases.)
     * You may supplement the terms of this License with terms that
       narrow the scope of its protection for a particular copy of the
       work, provided that you also supplement the terms with a
-      convenient, prominently-positioned explanation of the difference
-      in license terms and in which circumstances those differences
-      apply.
+    convenient, prominently-positioned explanation of the difference
+    in license terms and in which circumstances those differences
+    apply.
 
     * You may add terms to a covered work that disclaim warranty or
       limit liability (or both) in such a way that they are valid under
@@ -314,7 +314,7 @@ permissions may be written to require their own removal in certain cases.)
       freedom for all users.
 
   Notwithstanding any other provision of this License, for material
-you add to a covered work, you may at your option: (a) supplement the
+  you add to a covered work, you may at your option: (a) supplement the
 terms of this License with terms that limit the liability of certain
 contributors; or (b) add terms that require preservation of attribution
 notices, provided such terms do not conflict with the License.
@@ -456,58 +456,58 @@ combination as such.
   14. Revised Versions of this License.
 
   The Free Software Foundation may publish revised and/or new versions
-of the GNU General Public License from time to time.  Such new versions
-will be similar in spirit to the present version, but may differ in
-detail to address new problems or concerns.
+  of the GNU General Public License from time to time.  Such new versions
+  will be similar in spirit to the present version, but may differ in
+  detail to address new problems or concerns.
 
   Each version is given a distinguishing version number.  If the
-Program specifies that a certain numbered version of the GNU General
-Public License "or any later version" applies to it, you have the
-option of following the terms and conditions either of that numbered
-version or of any later version published by the Free Software
-Foundation.  If the Program does not specify a version number of the
-GNU General Public License, you may choose any version ever published
-by the Free Software Foundation.
+  Program specifies that a certain numbered version of the GNU General
+  Public License "or any later version" applies to it, you have the
+  option of following the terms and conditions either of that numbered
+  version or of any later version published by the Free Software
+  Foundation.  If the Program does not specify a version number of the
+  GNU General Public License, you may choose any version ever published
+  by the Free Software Foundation.
 
   If the Program specifies that a proxy should decide which future
-versions of the GNU General Public License can be used, that proxy's
-public statement of acceptance of a version permanently authorizes you
-to choose that version for the Program.
+  versions of the GNU General Public License can be used, that proxy's
+  public statement of acceptance of a version permanently authorizes you
+  to choose that version for the Program.
 
 
   15. Disclaimer of Warranty.
 
   THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
-APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
-HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT
-WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-PARTICULAR PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE
-OF THE PROGRAM IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU
-ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+  APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+  HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT
+  WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT
+  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+  PARTICULAR PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE
+  OF THE PROGRAM IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU
+  ASSUME THE COST OF ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
 
 
   16. Limitation of Liability.
 
   IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
-WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
-THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING
-ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT
-OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
-TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
-YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY
-OTHER PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGES.
+  WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
+  THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING
+  ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT
+  OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
+  TO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
+  YOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY
+  OTHER PROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED
+  OF THE POSSIBILITY OF SUCH DAMAGES.
 
 
   17. Interpretation of Sections 15 and 16.
 
   If the disclaimer of warranty and limitation of liability provided
-above cannot be given local legal effect according to their terms,
-reviewing courts shall apply local law that most closely approximates
-an absolute waiver of all civil liability in connection with the
-Program, unless a warranty or assumption of liability accompanies a
-copy of the Program in return for a fee.
+  above cannot be given local legal effect according to their terms,
+  reviewing courts shall apply local law that most closely approximates
+  an absolute waiver of all civil liability in connection with the
+  Program, unless a warranty or assumption of liability accompanies a
+  copy of the Program in return for a fee.
 
 
   END OF TERMS AND CONDITIONS
@@ -521,12 +521,12 @@ free software which everyone can redistribute and change under these
 terms.
 
   To do so, attach the following notices to the program.  It is safest
-to attach them to the start of each source file to most effectively
-convey the exclusion of warranty; and each file should have at least
-the "copyright" line and a pointer to where the full notice is found.
+  to attach them to the start of each source file to most effectively
+  convey the exclusion of warranty; and each file should have at least
+  the "copyright" line and a pointer to where the full notice is found.
 
     <one line to give the program's name and a brief idea of what it does.>
-    Copyright (C) 2026 The CYD-Phone contributors (RominoKOwalski, TheDrop, usw)
+    Copyright (C) 2026 The CYD-Phone contributors (WX-79, RominoKowalski, TheDrop123, Gartenprofi, gnampfkuchen-oss)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
